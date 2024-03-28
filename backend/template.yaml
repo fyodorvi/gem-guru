@@ -18,6 +18,9 @@ Globals:
     # You can add LoggingConfig parameters such as the Logformat, Log Group, and SystemLogLevel or ApplicationLogLevel. Learn more here https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html#sam-function-loggingconfig.
     LoggingConfig:
       LogFormat: JSON
+Parameters:
+  PipelineRole:
+    Type: String
 Resources:
   FrontendBucket:
     Type: AWS::S3::Bucket
@@ -65,6 +68,16 @@ Resources:
             Principal:
               CanonicalUser: !GetAtt CloudFrontOriginAccessIdentity.S3CanonicalUserId
             Action: 's3:GetObject'
+            Resource: !Sub
+              - 'arn:aws:s3:::${Bucket}/*'
+              - Bucket: !Ref FrontendBucket
+          - Effect: Allow
+            Principal:
+              AWS:
+                - !Ref PipelineRole
+            Action:
+              - "s3:PutObject"
+              - "s3:DeleteObject"
             Resource: !Sub
               - 'arn:aws:s3:::${Bucket}/*'
               - Bucket: !Ref FrontendBucket

@@ -1,0 +1,61 @@
+name: Pipeline
+on:
+  push:
+    branches:
+      - 'main'
+
+env:
+  PIPELINE_EXECUTION_ROLE: arn:aws:iam::851148335474:role/aws-sam-cli-managed-prod-pipe-PipelineExecutionRole-r0nZchcbbd3b
+  CLOUDFORMATION_EXECUTION_ROLE: arn:aws:iam::851148335474:role/aws-sam-cli-managed-prod--CloudFormationExecutionRo-y0VFdIGQ9Ycr
+  ARTIFACTS_BUCKET: aws-sam-cli-managed-prod-pipeline--artifactsbucket-vscoix6ywhvt
+  REGION: ap-southeast-2
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: aws-actions/setup-sam@v1
+      - name: Assume the pipeline user role
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{secrets.AWS_ACCESS_KEY_ID}}
+          aws-secret-access-key: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+          aws-region: ${{env.REGION}}
+          role-to-assume: ${{env.PIPELINE_EXECUTION_ROLE}}
+          role-session-name: deploy
+          role-duration-seconds: 3600
+          role-skip-session-tagging: true
+      - name: Build backend
+        working-directory: backend
+        run: sam build
+      - name: Deploy backend
+        working-directory: backend
+        run: |
+          sam deploy --stack-name gem-guru \
+            --capabilities CAPABILITY_IAM \
+            --region ${REGION} \
+            --s3-bucket ${ARTIFACTS_BUCKET} \
+            --no-fail-on-empty-changeset \
+            --role-arn ${CLOUDFORMATION_EXECUTION_ROLE} \
+            --parameter-overrides \
+              "PipelineRole=${PIPELINE_EXECUTION_ROLE}"
+      - name: Read frontend bucket name
+        run: |
+          echo "frontend_bucket_name=$( \
+            aws cloudformation describe-stacks \
+              --stack-name gem-guru \
+              --query 'Stacks[0].Outputs[?OutputKey==`FrontendBucketName`].OutputValue' \
+              --output text \
+          )" >> $GITHUB_ENV
+      - name: Build frontend
+        working-directory: frontend
+        run: npm install && npm run build
+      - name: Clear frontend bucket
+        run: |
+          aws s3 rm s3://${{ env.frontend_bucket_name }} --recursive
+      - name: Deploy frontend
+        run: |
+          aws s3 cp frontend/dist \
+            s3://${{ env.frontend_bucket_name }} \
+            --recursive
