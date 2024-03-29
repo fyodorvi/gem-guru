@@ -127,3 +127,5 @@ Outputs:
     Value: !GetAtt HelloWorldFunctionRole.Arn
   Website:
     Value: !GetAtt CloudFrontDistribution.DomainName
+  FrontendBucketName:
+    Value: !Ref FrontendBucket
