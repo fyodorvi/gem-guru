@@ -18,7 +18,6 @@ capabilities = "CAPABILITY_IAM"
 s3_prefix = "gem-guru"
 region = "ap-southeast-2"
 image_repositories = []
-parameter_overrides = "Auth0Audience=\"https://d1rdy03wlp3g8x.cloudfront.net/api\" Auth0Issuer=\"https://gem-guru.au.auth0.com/\""
 
 [default.package.parameters]
 resolve_s3 = true
