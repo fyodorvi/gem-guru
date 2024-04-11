@@ -17,5 +17,11 @@
     "tslib": "^2.6.2",
     "typescript": "^5.2.2",
     "vite": "^5.2.0"
+  },
+  "dependencies": {
+    "@auth0/auth0-spa-js": "^2.1.3",
+    "@roxi/routify": "^3.0.0-next.222",
+    "@types/axios": "^0.14.0",
+    "axios": "^1.6.8"
   }
 }

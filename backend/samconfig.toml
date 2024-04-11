@@ -5,6 +5,7 @@ version = 0.1
 [default]
 [default.global.parameters]
 stack_name = "gem-guru"
+parameter_overrides = "Auth0Audience=\"https://d1rdy03wlp3g8x.cloudfront.net/api\" Auth0Issuer=\"https://gem-guru.au.auth0.com/\""
 
 [default.build.parameters]
 cached = true
@@ -27,6 +28,7 @@ watch = true
 
 [default.local_start_api.parameters]
 warm_containers = "EAGER"
+parameter_overrides = "Auth0Audience=\"http://localhost:3000/api\" Auth0Issuer=\"https://gem-guru-dev.au.auth0.com/\""
 
 [default.local_start_lambda.parameters]
 warm_containers = "EAGER"

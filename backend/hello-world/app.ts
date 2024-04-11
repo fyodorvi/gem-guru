@@ -1,30 +1,32 @@
-import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
+import express from 'express';
+import serverless from 'serverless-http';
+import { auth } from 'express-oauth2-jwt-bearer';
 
-/**
- *
- * Event doc: https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html#api-gateway-simple-proxy-for-lambda-input-format
- * @param {Object} event - API Gateway Lambda Proxy Input Format
- *
- * Return doc: https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html
- * @returns {Object} object - API Gateway Lambda Proxy Output Format
- *
- */
+import routes from './routes';
 
-export const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-    try {
-        return {
-            statusCode: 200,
-            body: JSON.stringify({
-                message: 'hello world',
-            }),
-        };
-    } catch (err) {
-        console.log(err);
-        return {
-            statusCode: 500,
-            body: JSON.stringify({
-                message: 'some error happened',
-            }),
-        };
-    }
-};
+const app = express();
+
+app.use(express.json());
+
+app.use(
+    auth({
+        issuerBaseURL: process.env.Auth0Issuer,
+        audience: process.env.Auth0Audience,
+        tokenSigningAlg: 'RS256'
+    })
+);
+
+console.log(process.env.Auth0Audience);
+
+app.use('/api', routes);
+
+app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+    res.status(404).send();
+});
+
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    res.status(err.status || 500).send();
+});
+
+export const lambdaHandler = serverless(app);
+

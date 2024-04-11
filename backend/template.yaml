@@ -10,16 +10,23 @@ Globals:
   Api:
     Cors:
       AllowMethods: "'GET,POST,OPTIONS'"
-      AllowHeaders: "'content-type'"
+      AllowHeaders: "'*'"
       AllowOrigin: "'*'"
   Function:
     Timeout: 3
-
+    Environment:
+      Variables:
+        Auth0Audience: !Ref Auth0Audience
+        Auth0Issuer: !Ref Auth0Issuer
     # You can add LoggingConfig parameters such as the Logformat, Log Group, and SystemLogLevel or ApplicationLogLevel. Learn more here https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html#sam-function-loggingconfig.
     LoggingConfig:
       LogFormat: JSON
 Parameters:
   PipelineRole:
+    Type: String
+  Auth0Audience:
+    Type: String
+  Auth0Issuer:
     Type: String
 Resources:
   FrontendBucket:

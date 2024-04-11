@@ -1,19 +1,14 @@
 <script lang="ts">
-  import svelteLogo from './assets/svelte.svg'
-  import viteLogo from '/vite.svg'
-  import Counter from './lib/Counter.svelte'
   import { onMount } from 'svelte';
+  import { Router, createRouter } from '@roxi/routify'
+  import routes from '../.routify/routes.default.js'
 
-  let greeting = {};
-
-  onMount(async () => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/hello`);
-    greeting = await response.json();
-  })
+  export const router = createRouter({ routes })
 </script>
 
 <main>
-  <div>
+  <Router {router} />
+  <!--<div>
     <a href="https://vitejs.dev" target="_blank" rel="noreferrer">
       <img src={viteLogo} class="logo" alt="Vite Logo" />
     </a>
@@ -33,7 +28,7 @@
 
   <p class="read-the-docs">
     Click on the Vite and Svelte logos to learn more
-  </p>
+  </p>-->
 </main>
 
 <style>
