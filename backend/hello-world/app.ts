@@ -9,17 +9,6 @@ const app = express();
 
 app.use(express.json());
 
-app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
-    axios.get('https://example.com/').then((response) => {
-        console.log('Done fetching example.com: ' + response.data.length);
-        next();
-    }).catch((e) => {
-        console.log('Error fetching example.com');
-        console.log(e);
-        next();
-    })
-});
-
 app.use(
     auth({
         issuerBaseURL: process.env.Auth0Issuer,
@@ -27,6 +16,16 @@ app.use(
         tokenSigningAlg: 'RS256'
     })
 );
+
+app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (err) {
+        console.error(err)
+        console.error(req.headers);
+        res.status(500).send('Something broke!')
+    } else {
+        next();
+    }
+})
 
 app.use('/api', routes);
 
