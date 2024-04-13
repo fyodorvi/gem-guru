@@ -1,12 +1,24 @@
 import express from 'express';
 import serverless from 'serverless-http';
 import { auth } from 'express-oauth2-jwt-bearer';
+import axios from 'axios';
 
 import routes from './routes';
 
 const app = express();
 
 app.use(express.json());
+
+app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+    axios.get('https://example.com/').then((response) => {
+        console.log('Done fetching example.com: ' + response.data.length);
+        next();
+    }).catch((e) => {
+        console.log('Error fetching example.com');
+        console.log(e);
+        next();
+    })
+});
 
 app.use(
     auth({
@@ -15,8 +27,6 @@ app.use(
         tokenSigningAlg: 'RS256'
     })
 );
-
-console.log(process.env.Auth0Audience);
 
 app.use('/api', routes);
 
