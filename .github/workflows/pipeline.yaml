@@ -39,7 +39,7 @@ jobs:
             --no-fail-on-empty-changeset \
             --role-arn ${CLOUDFORMATION_EXECUTION_ROLE} \
             --parameter-overrides \
-              "PipelineRole=${PIPELINE_EXECUTION_ROLE} Auth0Audience=\"https://d1rdy03wlp3g8x.cloudfront.net/api\" Auth0Issuer=\"https://gem-guru.au.auth0.com/\""
+              "PipelineRole=${PIPELINE_EXECUTION_ROLE} Auth0Audience=\"https://gem.fyodor.co.nz/api\" Auth0Issuer=\"https://gem-guru.au.auth0.com/\""
       - name: Read frontend bucket name
         run: |
           echo "frontend_bucket_name=$( \
