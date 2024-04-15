@@ -12,7 +12,7 @@ env:
   DOMAIN_API_CERTIFICATE: arn:aws:acm:ap-southeast-2:851148335474:certificate/32f5e06b-1a60-4915-b4ce-cb09a05c41ec
   DOMAIN_FRONTEND: gem.fyodor.co.nz
   DOMAIN_FRONTEND_CERTIFICATE: arn:aws:acm:us-east-1:851148335474:certificate/50b26b62-2568-4b3d-85c3-88d900c7c97c
-  AUTH0_AUDIENCE: https://api.gem.fyodor.co.nz/
+  AUTH0_AUDIENCE: https://api.gem.fyodor.co.nz
   AUTH0_ISSUER: https://gem-guru.au.auth0.com/
   REGION: ap-southeast-2
 
