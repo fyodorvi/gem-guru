@@ -27,7 +27,7 @@ watch = true
 
 [default.local_start_api.parameters]
 warm_containers = "EAGER"
-parameter_overrides = "Auth0Audience=\"http://localhost:3000/api\" Auth0Issuer=\"https://gem-guru-dev.au.auth0.com/\""
+parameter_overrides = "Auth0Audience=\"http://localhost:3000\" Auth0Issuer=\"https://gem-guru-dev.au.auth0.com/\""
 
 [default.local_start_lambda.parameters]
 warm_containers = "EAGER"
