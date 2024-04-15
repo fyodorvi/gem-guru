@@ -1,13 +1,14 @@
 import express from 'express';
 import serverless from 'serverless-http';
 import { auth } from 'express-oauth2-jwt-bearer';
-import axios from 'axios';
+import cors from 'cors';
 
 import routes from './routes';
 
 const app = express();
 
 app.use(express.json());
+app.use(cors());
 
 app.use(
     auth({
