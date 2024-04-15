@@ -8,6 +8,12 @@ env:
   PIPELINE_EXECUTION_ROLE: arn:aws:iam::851148335474:role/aws-sam-cli-managed-prod-pipe-PipelineExecutionRole-r0nZchcbbd3b
   CLOUDFORMATION_EXECUTION_ROLE: arn:aws:iam::851148335474:role/aws-sam-cli-managed-prod--CloudFormationExecutionRo-y0VFdIGQ9Ycr
   ARTIFACTS_BUCKET: aws-sam-cli-managed-prod-pipeline--artifactsbucket-vscoix6ywhvt
+  DOMAIN_API: api.gem.fyodor.co.nz
+  DOMAIN_API_CERTIFICATE: arn:aws:acm:ap-southeast-2:851148335474:certificate/32f5e06b-1a60-4915-b4ce-cb09a05c41ec
+  DOMAIN_FRONTEND: gem.fyodor.co.nz
+  DOMAIN_FRONTEND_CERTIFICATE: arn:aws:acm:us-east-1:851148335474:certificate/50b26b62-2568-4b3d-85c3-88d900c7c97c
+  AUTH0_AUDIENCE: https://api.gem.fyodor.co.nz/
+  AUTH0_ISSUER: https://gem-guru.au.auth0.com/
   REGION: ap-southeast-2
 
 jobs:
@@ -39,7 +45,7 @@ jobs:
             --no-fail-on-empty-changeset \
             --role-arn ${CLOUDFORMATION_EXECUTION_ROLE} \
             --parameter-overrides \
-              "PipelineRole=${PIPELINE_EXECUTION_ROLE} Auth0Audience=\"https://gem.fyodor.co.nz/api\" Auth0Issuer=\"https://gem-guru.au.auth0.com/\""
+              "PipelineRole=${PIPELINE_EXECUTION_ROLE} Auth0Audience=${AUTH0_AUDIENCE} Auth0Issuer=${AUTH0_ISSUER} DomainAPI=${DOMAIN_API} DomainAPICertificate=${DOMAIN_API_CERTIFICATE} DomainFrontend=${DOMAIN_FRONTEND} DomainFrontendCertificate=${DOMAIN_FRONTEND_CERTIFICATE}"
       - name: Read frontend bucket name
         run: |
           echo "frontend_bucket_name=$( \

@@ -27,7 +27,7 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
     }
 })
 
-app.use('/api', routes);
+app.use('/', routes);
 
 app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
     res.status(404).send();

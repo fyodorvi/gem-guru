@@ -28,39 +28,47 @@ Parameters:
     Type: String
   Auth0Issuer:
     Type: String
+  DomainAPI:
+    Type: String
+  DomainAPICertificate:
+    Type: String
+  DomainFrontend:
+    Type: String
+  DomainFrontendCertificate:
+    Type: String
+
 Resources:
   FrontendBucket:
     Type: AWS::S3::Bucket
+
+  RestApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Domain:
+        DomainName:  !Ref DomainAPI
+        CertificateArn: !Ref DomainAPICertificate
 
   CloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
     Properties:
       DistributionConfig:
+        Aliases:
+          - !Ref DomainFrontend
+        ViewerCertificate:
+          AcmCertificateArn: !Ref DomainFrontendCertificate
+          MinimumProtocolVersion: 'TLSv1.2_2021'
+          SslSupportMethod: 'sni-only'
         Origins:
           - Id: FrontendBucket
             DomainName: !GetAtt FrontendBucket.RegionalDomainName
             S3OriginConfig:
               OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}"
-          - Id: Backend
-            DomainName: !Sub "${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com"
-            OriginPath: "/Prod"
-            CustomOriginConfig:
-              OriginProtocolPolicy: https-only
         DefaultCacheBehavior:
           TargetOriginId: FrontendBucket
           ViewerProtocolPolicy: redirect-to-https
           ForwardedValues:
             QueryString: true
-        CacheBehaviors:
-          - TargetOriginId: Backend
-            PathPattern: "api/*"
-            DefaultTTL: 0
-            MinTTL: 0
-            MaxTTL: 0
-            ViewerProtocolPolicy: https-only
-            AllowedMethods: [ GET,HEAD,OPTIONS,PUT,PATCH,POST,DELETE ]
-            ForwardedValues:
-              QueryString: true
         Enabled: true
         DefaultRootObject: index.html
 
@@ -117,7 +125,8 @@ Resources:
         HelloWorld:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
-            Path: /api/hello
+            Path: /hello
+            RestApiId: !Ref RestApiGateway # Add the RestApiId property
             Method: get
     Metadata: # Manage esbuild properties
       BuildMethod: esbuild
@@ -134,7 +143,7 @@ Outputs:
   # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
   HelloWorldApi:
     Description: API Gateway endpoint URL for Prod stage for Hello World function
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
+    Value: !Sub "https://${RestApiGateway}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
   HelloWorldFunction:
     Description: Hello World Lambda Function ARN
     Value: !GetAtt HelloWorldFunction.Arn
