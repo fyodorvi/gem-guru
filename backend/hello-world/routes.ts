@@ -1,5 +1,6 @@
 import { Request, Response, Router } from 'express';
-import AWS from 'aws-sdk';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { QueryCommand, PutCommand, DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 
 const router = Router();
 
@@ -22,33 +23,37 @@ router.get('/hello', async (req: Request, res: Response) => {
 });
 
 router.post('/save-data', async (req: Request, res: Response) => {
-    const dynamodb = new AWS.DynamoDB({
+    const client = new DynamoDBClient({
         endpoint
     });
 
+    const docClient = DynamoDBDocumentClient.from(client);
+
     const auth = req.auth!;
 
-    const params = {
+    const command = new PutCommand({
         TableName: userDataTableName,
         Item: {
-            id : { S: auth.payload.sub},
-            data: { S:req.body.data}
+            id : auth.payload.sub,
+            data: req.body.data
         }
-    };
+    })
 
-    await dynamodb.putItem(params).promise();
+    await docClient.send(command);
 
     res.status(200).json({ message: 'saved' });
 });
 
 router.get('/load-data', async (req: Request, res: Response) => {
-    const docClient = new AWS.DynamoDB.DocumentClient({
+    const client = new DynamoDBClient({
         endpoint
     });
 
+    const docClient = DynamoDBDocumentClient.from(client);
+
     const auth = req.auth!;
 
-    const params = {
+    const command = new QueryCommand({
         TableName: userDataTableName,
         KeyConditionExpression: "#id = :id",
         ExpressionAttributeNames:{
@@ -57,10 +62,10 @@ router.get('/load-data', async (req: Request, res: Response) => {
         ExpressionAttributeValues: {
             ":id": auth.payload.sub
         }
-    }
+    });
 
     console.log('getting data...');
-    const result = await docClient.query(params).promise();
+    const result = await docClient.send(command);
     let loadedData = '';
     if (result.Items) {
         if (result.Items[0]) {
