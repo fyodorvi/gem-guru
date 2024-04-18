@@ -13,11 +13,13 @@ Globals:
       AllowHeaders: "'*'"
       AllowOrigin: "'*'"
   Function:
-    Timeout: 3
+    Timeout: 10
     Environment:
       Variables:
         Auth0Audience: !Ref Auth0Audience
         Auth0Issuer: !Ref Auth0Issuer
+        UserDataTableName: !Ref UserDataTableName
+        LOCAL: !Ref IsLocal
     # You can add LoggingConfig parameters such as the Logformat, Log Group, and SystemLogLevel or ApplicationLogLevel. Learn more here https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html#sam-function-loggingconfig.
     LoggingConfig:
       LogFormat: JSON
@@ -36,10 +38,24 @@ Parameters:
     Type: String
   DomainFrontendCertificate:
     Type: String
+  IsLocal:
+    Default: 'false'
+    Type: String
+  UserDataTableName:
+    Default: 'user-data'
+    Type: String
 
 Resources:
   FrontendBucket:
     Type: AWS::S3::Bucket
+
+  UserDataTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: id
+        Type: String
+      TableName: !Ref UserDataTableName
 
   RestApiGateway:
     Type: AWS::Serverless::Api
@@ -119,6 +135,8 @@ Resources:
       CodeUri: hello-world/
       Handler: app.lambdaHandler
       Runtime: nodejs20.x
+      MemorySize: 512
+      Policies: AmazonDynamoDBFullAccess
       Architectures:
       - x86_64
       Events:
@@ -128,6 +146,18 @@ Resources:
             Path: /hello
             RestApiId: !Ref RestApiGateway # Add the RestApiId property
             Method: get
+        LoadData:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /load-data
+            RestApiId: !Ref RestApiGateway # Add the RestApiId property
+            Method: get
+        SaveData:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /save-data
+            RestApiId: !Ref RestApiGateway # Add the RestApiId property
+            Method: post
     Metadata: # Manage esbuild properties
       BuildMethod: esbuild
       BuildProperties:

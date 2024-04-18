@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@types/jsonwebtoken": "^9.0.6",
+    "aws-sdk": "^2.1599.0",
     "axios": "^1.6.8",
     "cors": "^2.8.5",
     "esbuild": "^0.14.14",
