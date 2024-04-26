@@ -65,6 +65,11 @@ const _useAuth0 = () => {
         get(auth0Client).loginWithRedirect(options);
     };
 
+    const signup = (options?: RedirectLoginOptions) => {
+        get(auth0Client).loginWithRedirect({...options, authorizationParams: { screen_hint: 'signup' }});
+    };
+
+
     const logout = (options?: LogoutOptions) => {
         get(auth0Client).logout(options);
     };
@@ -81,6 +86,7 @@ const _useAuth0 = () => {
 
         initializeAuth0,
         login,
+        signup,
         logout,
         getAccessToken,
     };
