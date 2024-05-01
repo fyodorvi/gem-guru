@@ -1,9 +1,11 @@
 <script lang="ts">
-    import { beforeUrlChange } from '@roxi/routify'
+    import { beforeUrlChange, isActive } from '@roxi/routify'
     import {useAuth0} from "../services/auth0";
     import {onMount} from 'svelte';
     import { Button } from 'flowbite-svelte';
     import logo from '../assets/logo.png';
+    import { Spinner } from 'flowbite-svelte';
+    import { Navbar, NavBrand, NavLi, NavUl, NavHamburger, Avatar, Dropdown, DropdownItem, DropdownHeader, DropdownDivider } from 'flowbite-svelte';
 
     let { isLoading, isAuthenticated, login, signup, logout, initializeAuth0, user } = useAuth0;
 
@@ -28,14 +30,36 @@
 </script>
 
 {#if $isLoading}
-    <p>Loading...</p>
+    <div class="flex h-screen">
+        <div class="m-auto text-center">
+            <Spinner />
+        </div>
+    </div>
 {:else}
     {#if $isAuthenticated}
-    <a href="/calculator">Calculator</a> {$user.email}
-    <Button on:click={() => logout({ logoutParams: {
-      returnTo: window.location.origin,
-    }})}>Logout</Button>
-    <slot />
+        <Navbar>
+            <NavBrand href="/">
+                <!--<img src="/images/flowbite-svelte-icon-logo.svg" class="me-3 h-6 sm:h-9" alt="Flowbite Logo" />-->
+                <span class="self-center whitespace-nowrap text-xl font-semibold dark:text-white font-serif">Gem Guru</span>
+            </NavBrand>
+            <div class="flex items-center md:order-2">
+                <Avatar id="avatar-menu" class="cursor-pointer" />
+                <NavHamburger class1="w-full md:flex md:w-auto md:order-1" />
+            </div>
+            <Dropdown placement="bottom" triggeredBy="#avatar-menu">
+                <DropdownHeader>
+                    <span class="block truncate text-sm font-medium">{$user.email}</span>
+                </DropdownHeader>
+                <DropdownItem on:click={() => logout({ logoutParams: {returnTo: window.location.origin,}})}>Sign out</DropdownItem>
+            </Dropdown>
+            <NavUl>
+                <NavLi href="/calculator" active={true}>Calculator</NavLi>
+                <NavLi href="/projection">Projection</NavLi>
+            </NavUl>
+        </Navbar>
+        <div class="p-5">
+            <slot />
+        </div>
     {:else}
     <div class="flex h-screen">
         <div class="m-auto text-center">

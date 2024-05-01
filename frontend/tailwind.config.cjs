@@ -3,7 +3,7 @@ const config = {
 
   plugins: [require('flowbite/plugin')],
 
-  darkMode: 'selector',
+  darkMode: 'class',
 
   theme: {
     extend: {
