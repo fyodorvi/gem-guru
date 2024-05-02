@@ -13,6 +13,24 @@ if (local) {
     endpoint = 'http://host.docker.internal:4566';
 }
 
+export interface CalculatedPurchase {
+    name: string;
+    total: number;
+    remaining: number;
+    paymentToday: number;
+    paymentsTotal: number;
+    paymentsDone: number;
+    startDate: string;
+    expiryDate: string;
+    minimumPayment: number | undefined;
+}
+
+export interface Calculation {
+    totalRemaining: number;
+    totalAmountToPay: number;
+    purchases: CalculatedPurchase[]
+}
+
 router.get('/hello', async (req: Request, res: Response) => {
     try {
         res.status(200).json({ message: 'initialised' });
@@ -22,7 +40,7 @@ router.get('/hello', async (req: Request, res: Response) => {
     }
 });
 
-router.post('/save-data', async (req: Request, res: Response) => {
+router.post('/purchases', async (req: Request, res: Response) => {
     const client = new DynamoDBClient({
         endpoint
     });
@@ -44,7 +62,7 @@ router.post('/save-data', async (req: Request, res: Response) => {
     res.status(200).json({ message: 'saved' });
 });
 
-router.get('/load-data', async (req: Request, res: Response) => {
+router.get('/calculation', async (req: Request, res: Response) => {
     const client = new DynamoDBClient({
         endpoint
     });
@@ -73,7 +91,23 @@ router.get('/load-data', async (req: Request, res: Response) => {
         }
     }
 
-    res.status(200).json({ data: loadedData });
+    const calculation: Calculation = {
+        totalRemaining: 1000,
+        purchases: [{
+            name: 'LG Fridge',
+            total: 9000,
+            remaining: 8700,
+            paymentToday: 130,
+            paymentsDone: 5,
+            paymentsTotal: 18,
+            startDate: '2024-05-01T09:17:53Z',
+            expiryDate: '2025-05-01T09:17:53Z',
+            minimumPayment: undefined
+        }],
+        totalAmountToPay: 42.50
+    }
+
+    res.status(200).json(calculation);
 });
 
 

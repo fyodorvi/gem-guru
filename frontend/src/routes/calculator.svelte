@@ -11,67 +11,47 @@
         Table,
         TableHead,
         TableHeadCell,
-        TableBody, TableBodyRow, TableBodyCell
+        TableBody, TableBodyRow, TableBodyCell, Modal, Label, Checkbox, Input
     } from 'flowbite-svelte';
     import { PlusOutline, DotsHorizontalOutline, CalendarMonthOutline } from 'flowbite-svelte-icons';
+    import {type Calculation, loadCalculation} from "../services/api";
 
     let { getAccessToken } = useAuth0;
-    let message: string;
     let loading = true;
-    let dataValue = '';
+    let formModal = false;
+    let formModalMinimumPayment = false;
+    let calculation: Calculation;
+
+    const reloadCalculation = async() => {
+        calculation = await loadCalculation();
+        loading = false;
+        console.log(calculation)
+    }
+
+
 
     onMount(async () => {
-        const token = await getAccessToken({ authorizationParams: { audience: import.meta.env.VITE_API_URL }});
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/hello`, {
-            headers: {
-                Authorization: 'Bearer ' + token
-            }
-        });
-        message = response.data.message;
-        loading = false;
+        await reloadCalculation();
     });
-
-    async function loadData() {
-        loading = true;
-        const token = await getAccessToken({ authorizationParams: { audience: import.meta.env.VITE_API_URL }});
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/load-data`, {
-            headers: {
-                Authorization: 'Bearer ' + token
-            }
-        });
-        message = 'loaded';
-        dataValue = response.data.data;
-        loading = false;
-    }
-
-    async function saveData() {
-        loading = true;
-        const token = await getAccessToken({ authorizationParams: { audience: import.meta.env.VITE_API_URL }});
-        await axios.post(`${import.meta.env.VITE_API_URL}/save-data`, { data: dataValue }, {
-            headers: {
-                Authorization: 'Bearer ' + token
-            }
-        });
-        message = 'saved';
-        loading = false;
-    }
 </script>
 {#if !loading}
     <div class="lg:max-w-[50%] sm:max-w-[75%]">
-        <Heading tag="h5" class="font-normal mb-5">My Purchases <Button class="inline-block ml-2 p-2"><PlusOutline /></Button></Heading>
+        <Heading tag="h5" class="font-normal mb-5">My Purchases <Button on:click={() => (formModal = true)} class="inline-block ml-2 p-2"><PlusOutline /></Button></Heading>
         <ul>
-            <li class="p-3 border first:rounded-t-lg last:rounded-b-lg border-slate-300 sm:flex md:justify-between">
-                <div>
-                    <Heading tag="h6">LG Fridge</Heading>
-                    <div class="mt-3">Total: <span class="font-bold">$9400</span></div>
-                    <div class="mt-1">Remaining: <span class="font-bold">$6700</span> <Button class="inline-block ml-2 p-1" color="alternative"><DotsHorizontalOutline /></Button></div>
-                    <div class="mt-4"><CalendarMonthOutline class="inline-block" /> 12 March 2025</div>
-                </div>
-                <div class="sm:ml-auto w-44 sm:mt-10 mt-4">
-                    Payments: 3 out of 4
-                    <Progressbar progress="50" class="w-32 mt-2" />
-                </div>
-            </li>
+            {#each calculation.purchases as purchase}
+                <li class="p-3 border first:rounded-t-lg last:rounded-b-lg border-slate-300 sm:flex md:justify-between">
+                    <div>
+                        <Heading tag="h6">{purchase.name}</Heading>
+                        <div class="mt-3">Total: <span class="font-bold">${purchase.total}</span></div>
+                        <div class="mt-1">Remaining: <span class="font-bold">${purchase.remaining}</span> <Button class="inline-block ml-2 p-1" color="alternative"><DotsHorizontalOutline /></Button></div>
+                        <div class="mt-4"><CalendarMonthOutline class="inline-block" /> {new Date(purchase.expiryDate).toLocaleDateString()}</div>
+                    </div>
+                    <div class="sm:ml-auto w-44 sm:mt-10 mt-4">
+                        Payments: {purchase.paymentsDone} out of {purchase.paymentsTotal}
+                        <Progressbar progress={Math.floor(purchase.paymentsDone/purchase.paymentsTotal*100)} class="w-32 mt-2" />
+                    </div>
+                </li>
+            {/each}
         </ul>
         <Heading tag="h5" class="font-normal mb-5 mt-10">Payment Breakdown</Heading>
         <p class="mb-5">Calculation breaks down each purchase into equal parts. </p>
@@ -82,26 +62,66 @@
                 <TableHeadCell>Payments Left</TableHeadCell>
             </TableHead>
             <TableBody tableBodyClass="divide-y">
+                {#each calculation.purchases as purchase}
                 <TableBodyRow>
-                    <TableBodyCell>LG Fridge</TableBodyCell>
-                    <TableBodyCell>$120.50</TableBodyCell>
-                    <TableBodyCell>18</TableBodyCell>
+                    <TableBodyCell>{purchase.name}</TableBodyCell>
+                    <TableBodyCell>${purchase.paymentToday}</TableBodyCell>
+                    <TableBodyCell>{purchase.paymentsTotal-purchase.paymentsDone}</TableBodyCell>
                 </TableBodyRow>
-                <TableBodyRow>
-                    <TableBodyCell>Dishwasher</TableBodyCell>
-                    <TableBodyCell>$200</TableBodyCell>
-                    <TableBodyCell>5</TableBodyCell>
-                </TableBodyRow>
-                <TableBodyRow>
-                    <TableBodyCell>Watch</TableBodyCell>
-                    <TableBodyCell>$195.40</TableBodyCell>
-                    <TableBodyCell>8</TableBodyCell>
-                </TableBodyRow>
+                {/each}
             </TableBody>
         </Table>
-        <div class="text-xl mb-4">Total remaining: <span class="font-bold">$8700</span></div>
-        <div class="text-xl">Amount to pay today: <span class="font-bold bg-primary-300 p-2 rounded-xl">$1600.40</span></div>
+        <div class="text-xl mb-4">Total remaining: <span class="font-bold">${calculation.totalRemaining}</span></div>
+        <div class="text-xl">Amount to pay today: <span class="font-bold bg-primary-300 p-2 rounded-xl">${calculation.totalAmountToPay}</span></div>
     </div>
+    <Modal bind:open={formModal} size="xs" autoclose={false} class="w-full">
+        <form class="flex flex-col space-y-6" action="#">
+            <h3 class="mb-2 text-xl font-medium text-gray-900 dark:text-white">Add Purchase</h3>
+            <Label class="space-y-2">
+                <span>Purchase Name</span>
+                <Input type="text" name="purchase_name" required />
+            </Label>
+            <div class="sm:columns-2 space-y-2">
+                <Label>
+                    <span>Total</span>
+                    <Input let:props>
+                        <div slot="left">$</div>
+                        <input type="number" {...props} required />
+                    </Input>
+                </Label>
+                <Label>
+                    <span>Remaining</span>
+                    <Input let:props>
+                        <div slot="left">$</div>
+                        <input type="number" {...props} required />
+                    </Input>
+                </Label>
+            </div>
+            <div class="sm:columns-2 space-y-2">
+                <Label>
+                    <span>Start Date</span>
+                    <Input type="date" name="purchase_name" required />
+                </Label>
+                <Label>
+                    <span>Expiry Date</span>
+                    <Input type="date" name="purchase_name" required />
+                </Label>
+            </div>
+            <div class="sm:columns-2 space-y-2">
+                <Label>
+                    <span><Checkbox bind:checked={formModalMinimumPayment}>Minimum payment</Checkbox></span>
+                    {#if formModalMinimumPayment}
+                    <Input let:props class="mt-2">
+                        <div slot="left">$</div>
+                        <input type="number" {...props} />
+                    </Input>
+                    {/if}
+                </Label>
+                <div>&nbsp;</div>
+            </div>
+            <Button type="submit" class="w-full1">Add</Button>
+        </form>
+    </Modal>
 {:else}
     <!-- <Skeleton /> -->
     <Spinner />
