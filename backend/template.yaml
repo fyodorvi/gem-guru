@@ -132,7 +132,7 @@ Resources:
   HelloWorldFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      CodeUri: hello-world/
+      CodeUri: guru/
       Handler: app.lambdaHandler
       Runtime: nodejs20.x
       MemorySize: 512
@@ -149,13 +149,25 @@ Resources:
         LoadData:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
-            Path: /calculation
+            Path: /calculate
             RestApiId: !Ref RestApiGateway # Add the RestApiId property
             Method: get
-        SaveData:
+        AddPurchase:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
-            Path: /purchases
+            Path: /purchase/add
+            RestApiId: !Ref RestApiGateway # Add the RestApiId property
+            Method: post
+        UpdatePurchase:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /purchase/update
+            RestApiId: !Ref RestApiGateway # Add the RestApiId property
+            Method: post
+        DeletePurchase:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /purchase/delete
             RestApiId: !Ref RestApiGateway # Add the RestApiId property
             Method: post
     Metadata: # Manage esbuild properties

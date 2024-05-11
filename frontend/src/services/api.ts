@@ -2,6 +2,7 @@ import {useAuth0} from "../services/auth0";
 import axios from 'axios';
 
 export interface CalculatedPurchase {
+    id: string;
     name: string;
     total: number;
     remaining: number;
@@ -20,6 +21,7 @@ export interface Calculation {
 }
 
 export interface Purchase {
+    id?: string;
     name: string;
     total: number;
     remaining: number;
@@ -44,16 +46,20 @@ async function apiGET(url: string) {
 }
 
 async function apiPOST(url: string, body: any) {
-    const response = await axios.post(`${import.meta.env.VITE_API_URL}/${url}`, body, {
+    const response = await axios.post(`${import.meta.env.VITE_API_URL}${url}`, body, {
         headers: await getHeaders()
     });
     return response.data;
 }
 
 export async function loadCalculation(): Promise<Calculation> {
-    return apiGET('/calculation');
+    return apiGET('/calculate');
 }
 
-export async function updatePurchases(purchases: Purchase[]): Promise<Calculation> {
-    return apiPOST('/purchases', purchases);
+export async function updatePurchase(purchase: Purchase): Promise<Calculation> {
+    return apiPOST('/purchase/update', purchase);
+}
+
+export async function addPurchase(purchase: Purchase): Promise<Calculation> {
+    return apiPOST('/purchase/add', purchase);
 }

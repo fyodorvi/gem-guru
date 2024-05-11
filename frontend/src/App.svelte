@@ -3,14 +3,17 @@
   import { Router, createRouter } from '@roxi/routify'
   import routes from '../.routify/routes.default.js'
   import { Alert } from 'flowbite-svelte';
+  import Modal from 'svelte-simple-modal';
 
   export const router = createRouter({ routes })
 </script>
 
 
-<div class="container md:mx-auto">
-  <Router {router} />
-</div>
+<Modal closeOnEsc={false} closeOnOuterClick={false}>
+  <div class="container md:mx-auto">
+    <Router {router} />
+  </div>
+</Modal>
 
 
 <style>

@@ -3,7 +3,7 @@ import serverless from 'serverless-http';
 import { auth } from 'express-oauth2-jwt-bearer';
 import cors from 'cors';
 
-import routes from './routes';
+import routes from './src/controller';
 
 const app = express();
 
