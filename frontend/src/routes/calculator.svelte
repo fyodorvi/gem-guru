@@ -43,7 +43,7 @@
         <Heading tag="h5" class="font-normal mb-5">My Purchases <Button on:click={() => addPurchase()} class="inline-block ml-2 p-2"><PlusOutline /></Button></Heading>
         <ul>
             {#each $calculation.purchases as purchase}
-                <li class="p-3 border first:rounded-t-lg last:rounded-b-lg border-slate-300 sm:flex md:justify-between">
+                <li class="p-3 border-b border-l border-r first:border-t first:rounded-t-lg last:rounded-b-lg border-slate-300 sm:flex md:justify-between">
                     <div>
                         <Heading tag="h6">{purchase.name}</Heading>
                         <div class="mt-3">Total: <span class="font-bold">${purchase.total}</span></div>

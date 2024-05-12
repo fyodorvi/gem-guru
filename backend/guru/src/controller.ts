@@ -1,5 +1,7 @@
 import { Request, Response, Router } from 'express';
 import {addPurchase, calculate, removePurchase, updatePurchase} from "./service";
+import {validateBody} from "../middleware/validation";
+import {Purchase} from "./models/purchase";
 
 const router = Router();
 
@@ -17,7 +19,7 @@ const _getUserId = (req: Request): string => {
     return auth.payload.sub;
 }
 
-router.post('/purchase/add', async (req: Request, res: Response) => {
+router.post('/purchase/add', validateBody(Purchase), async (req: Request, res: Response) => {
     const userId = _getUserId(req);
     const purchase = req.body; // TODO: validate
 
@@ -26,22 +28,30 @@ router.post('/purchase/add', async (req: Request, res: Response) => {
     res.status(200).json(calculation);
 });
 
-router.post('/purchase/update', async (req: Request, res: Response) => {
+router.post('/purchase/:id/update', validateBody(Purchase), async (req: Request, res: Response) => {
     const userId = _getUserId(req);
-    const purchase = req.body; // TODO: validate
+    const purchase: Purchase = req.body;
+    const purchaseId: string = req.params.id;
 
-    const calculation = await updatePurchase(userId, purchase);
+    if (!purchaseId) {
+        throw new Error('No purchase id provided');
+    }
+
+    const calculation = await updatePurchase(userId, purchaseId, purchase);
 
     res.status(200).json(calculation);
 });
 
 
-router.post('/purchase/delete', async (req: Request, res: Response) => {
-    //TODO: make proper routes
+router.post('/purchase/:id/delete', async (req: Request, res: Response) => {
     const userId = _getUserId(req);
-    const purchase = req.body; // TODO: validate
+    const purchaseId: string = req.params.id;
+    if (!purchaseId) {
+        throw new Error('No purchase id provided');
+    }
+    const purchase: Purchase = req.body;
 
-    const calculation = await removePurchase(userId, purchase);
+    const calculation = await removePurchase(userId, req.params.id);
 
     res.status(200).json(calculation);
 });

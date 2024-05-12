@@ -12,10 +12,17 @@ if (local) {
 }
 
 const _getClient = (): DynamoDBDocumentClient => {
+    const marshallOptions = {
+        removeUndefinedValues: true,
+        convertClassInstanceToMap: true
+    }
+    const unmarshallOptions = {
+    }
+    const translateConfig = { marshallOptions, unmarshallOptions }
     const client = new DynamoDBClient({
         endpoint
     });
-    return DynamoDBDocumentClient.from(client);
+    return DynamoDBDocumentClient.from(client, translateConfig);
 }
 
 export const getPurchases = async (userId: string): Promise<Purchase[]> => {

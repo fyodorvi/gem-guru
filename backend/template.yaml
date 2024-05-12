@@ -161,13 +161,13 @@ Resources:
         UpdatePurchase:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
-            Path: /purchase/update
+            Path: /purchase/{id}/update
             RestApiId: !Ref RestApiGateway # Add the RestApiId property
             Method: post
         DeletePurchase:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
-            Path: /purchase/delete
+            Path: /purchase/{id}/delete
             RestApiId: !Ref RestApiGateway # Add the RestApiId property
             Method: post
     Metadata: # Manage esbuild properties

@@ -7,7 +7,8 @@ export interface CalculatedPurchase {
     paymentsDone: number;
     startDate: string;
     expiryDate: string;
-    minimumPayment: number | undefined;
+    hasMinimumPayment: boolean;
+    minimumPayment?: number;
 }
 
 export interface Calculation {

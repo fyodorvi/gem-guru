@@ -6,7 +6,7 @@ import * as _ from 'lodash';
 import {DateTime} from "luxon";
 
 
-function _calculateItemRepayment(item: Purchase): number {
+function _calculateItemRepayment(item: Purchase): { payToday: number, paymentsDone: number, paymentsTotal: number } {
     const remaining = item.remaining;
     const startDateStr = item.startDate.toString();
     const expiryDateStr = item.expiryDate.toString();
@@ -22,12 +22,20 @@ function _calculateItemRepayment(item: Purchase): number {
     // calculate how many repayments there can be until end date
     const daysToRepayLeft = Math.ceil(endDate.diff(DateTime.now()).as('days'));
     const monthsLeftToRepay = Math.ceil(endDate.diff(firstRepayment).as('months'));
+    const monthsTotal = endDate.diff(startDate).as('months');
 
+    let payToday: number;
     if (item.hasMinimumPayment && minPayment !== undefined) {
-        return minPayment;
+        payToday = minPayment;
     }
 
-    return Math.ceil(remaining / monthsLeftToRepay * 100) / 100;
+    payToday = Math.ceil(remaining / monthsLeftToRepay * 100) / 100;
+
+    return {
+        payToday: payToday,
+        paymentsDone: Math.ceil(monthsTotal - monthsLeftToRepay),
+        paymentsTotal: Math.ceil(monthsTotal)
+    };
 }
 
 export const calculate = async(userId: string, loadedPurchases?: Purchase[]): Promise<Calculation> => {
@@ -39,15 +47,15 @@ export const calculate = async(userId: string, loadedPurchases?: Purchase[]): Pr
         totalRemaining: 0
     }
     for(const purchase of purchases) {
-        const paymentToday = _calculateItemRepayment(purchase);
+        const paymentMeta = _calculateItemRepayment(purchase);
         calculation.purchases.push({
             ...purchase,
-            paymentToday,
-            paymentsTotal: 0,
-            paymentsDone: 0
+            paymentToday: paymentMeta.payToday,
+            paymentsTotal: paymentMeta.paymentsTotal,
+            paymentsDone: paymentMeta.paymentsDone
         });
         calculation.totalRemaining += purchase.remaining;
-        calculation.totalAmountToPay += paymentToday;
+        calculation.totalAmountToPay += paymentMeta.payToday;
     }
 
     return calculation;
@@ -68,9 +76,9 @@ export const removePurchase = async(userId: string, purchaseId: string): Promise
     return calculate(userId, purchases);
 }
 
-export const updatePurchase = async(userId: string, purchase: Purchase): Promise<Calculation> => {
+export const updatePurchase = async(userId: string, purchaseId: string, purchase: Purchase): Promise<Calculation> => {
     const purchases = await getPurchases(userId);
-    const existingPurchase = _.find(purchases, { id: purchase.id });
+    const existingPurchase = _.find(purchases, { id: purchaseId });
     if (!existingPurchase) {
         throw new Error(`Purchase not found: ${purchase.id}`);
     }

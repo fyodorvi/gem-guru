@@ -27,9 +27,11 @@
     const remaining = field('remaining', purchase?.remaining || 0, [required()]);
     const startDate = field('startDate', parseDate(purchase?.startDate), [required()]);
     const expiryDate = field('expiryDate', parseDate(purchase?.expiryDate), [required()]);
+    const hasMinimumPayment = field('hasMinimumPayment', purchase?.hasMinimumPayment || false);
     const minimumPayment = field('minimumPayment', purchase?.minimumPayment || 0);
 
     let submitting = false;
+    let deleting = false;
 
     const onSubmit = async() => {
         submitting = true;
@@ -39,12 +41,12 @@
             remaining: $remaining.value,
             expiryDate: $expiryDate.value,
             startDate: $startDate.value,
-            minimumPayment: $minimumPayment.value
+            hasMinimumPayment: $hasMinimumPayment.value,
+            minimumPayment: $hasMinimumPayment.value ? $minimumPayment.value : 0
         }
         let updatedCalculation: Calculation;
         if (purchase) {
-            newPurchase.id = purchase.id;
-            updatedCalculation = await updatePurchase(newPurchase);
+            updatedCalculation = await updatePurchase(purchase.id, newPurchase);
         } else {
             updatedCalculation = await addPurchase(newPurchase)
         }
@@ -52,8 +54,6 @@
         calculation.update(() => updatedCalculation);
         close();
     }
-
-    let formModalMinimumPayment = purchase?.minimumPayment !== undefined;
 </script>
 
 <form class="flex flex-col space-y-6" on:submit|preventDefault={onSubmit}>
@@ -90,8 +90,8 @@
     </div>
     <div class="sm:columns-2 space-y-2">
         <Label>
-            <span><Checkbox bind:checked={formModalMinimumPayment}>Minimum payment</Checkbox></span>
-            {#if formModalMinimumPayment}
+            <span><Checkbox bind:checked={$hasMinimumPayment.value}>Minimum payment</Checkbox></span>
+            {#if $hasMinimumPayment.value}
                 <Input let:props class="mt-2">
                     <div slot="left">$</div>
                     <input type="number" {...props} bind:value={$minimumPayment.value} />
@@ -101,4 +101,5 @@
         <div>&nbsp;</div>
     </div>
     <Button type="submit" class="w-full1" disabled={submitting}>{#if submitting}<Spinner class="me-3" size="4" color="white" />{/if} {#if purchase}Save{:else}Add{/if}</Button>
+    {#if purchase}<Button class="w-full1" color="red" disabled={deleting}>{#if deleting}<Spinner class="me-3" size="4" color="white" />{/if} Delete</Button>{/if}
 </form>

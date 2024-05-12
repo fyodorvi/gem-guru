@@ -11,7 +11,8 @@ export interface CalculatedPurchase {
     paymentsDone: number;
     startDate: string;
     expiryDate: string;
-    minimumPayment: number | undefined;
+    hasMinimumPayment: boolean;
+    minimumPayment?: number;
 }
 
 export interface Calculation {
@@ -27,7 +28,8 @@ export interface Purchase {
     remaining: number;
     startDate: string;
     expiryDate: string;
-    minimumPayment: number;
+    hasMinimumPayment: boolean;
+    minimumPayment?: number;
 }
 
 async function getHeaders() {
@@ -45,7 +47,7 @@ async function apiGET(url: string) {
     return response.data;
 }
 
-async function apiPOST(url: string, body: any) {
+async function apiPOST(url: string, body?: any) {
     const response = await axios.post(`${import.meta.env.VITE_API_URL}${url}`, body, {
         headers: await getHeaders()
     });
@@ -56,9 +58,14 @@ export async function loadCalculation(): Promise<Calculation> {
     return apiGET('/calculate');
 }
 
-export async function updatePurchase(purchase: Purchase): Promise<Calculation> {
-    return apiPOST('/purchase/update', purchase);
+export async function updatePurchase(purchaseId: string, purchase: Purchase): Promise<Calculation> {
+    return apiPOST(`/purchase/${purchaseId}/update`, purchase);
 }
+
+export async function deletePurchase(purchaseId: string): Promise<Calculation> {
+    return apiPOST(`/purchase/${purchaseId}/delete`);
+}
+
 
 export async function addPurchase(purchase: Purchase): Promise<Calculation> {
     return apiPOST('/purchase/add', purchase);
