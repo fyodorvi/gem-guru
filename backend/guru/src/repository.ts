@@ -1,6 +1,7 @@
 import {Purchase} from "./models/purchase";
 import {DynamoDBClient} from "@aws-sdk/client-dynamodb";
 import {DynamoDBDocumentClient, PutCommand, QueryCommand} from "@aws-sdk/lib-dynamodb";
+import {ProfileSettings} from "./models/profileSettings";
 
 const userDataTableName = process.env.UserDataTableName;
 
@@ -43,6 +44,29 @@ export const getPurchases = async (userId: string): Promise<Purchase[]> => {
         return result.Items[0].purchases;
     } else {
         return [];
+    }
+}
+
+export const getProfileSettings = async (userId: string): Promise<ProfileSettings> => {
+    const client = _getClient();
+
+    const command = new QueryCommand({
+        TableName: userDataTableName,
+        KeyConditionExpression: "#id = :id",
+        ExpressionAttributeNames:{
+            "#id": "id"
+        },
+        ExpressionAttributeValues: {
+            ":id": userId
+        }
+    });
+    const result = await client.send(command);
+    if (result.Items && result.Items[0] && result.Items[0].profileSettings) {
+        return result.Items[0].profileSettings;
+    } else {
+        return {
+            paymentDay: 1
+        }
     }
 }
 
