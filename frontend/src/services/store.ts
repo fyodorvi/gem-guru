@@ -3,6 +3,6 @@ import type {Calculation} from "./api";
 
 export const calculation: Writable<Calculation> = writable({
     totalRemaining: 0,
-    totalAmountToPay: 0,
+    totalNextPayment: 0,
     purchases: []
 });

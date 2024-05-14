@@ -2,7 +2,7 @@ export interface CalculatedPurchase {
     name: string;
     total: number;
     remaining: number;
-    paymentToday: number;
+    nextPayment: number;
     paymentsTotal: number;
     paymentsDone: number;
     startDate: string;
@@ -13,6 +13,7 @@ export interface CalculatedPurchase {
 
 export interface Calculation {
     totalRemaining: number;
-    totalAmountToPay: number;
+    totalNextPayment: number;
+    nextPaymentDate: string;
     purchases: CalculatedPurchase[]
 }

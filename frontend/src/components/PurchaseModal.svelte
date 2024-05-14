@@ -22,6 +22,11 @@
         return dt.toFormat('yyyy-MM-dd');
     };
 
+    const toCents = (amount: number): number => {
+        let cents = amount * 100;
+        return Math.round(cents);
+    }
+
     const name = field('name', purchase?.name || '', [required()]);
     const total = field('total', purchase?.total || 0, [required()]);
     const remaining = field('remaining', purchase?.remaining || 0, [required()]);
@@ -37,12 +42,12 @@
         submitting = true;
         const newPurchase: Purchase = {
             name: $name.value,
-            total: $total.value,
-            remaining: $remaining.value,
+            total: toCents($total.value),
+            remaining: toCents($remaining.value),
             expiryDate: $expiryDate.value,
             startDate: $startDate.value,
             hasMinimumPayment: $hasMinimumPayment.value,
-            minimumPayment: $hasMinimumPayment.value ? $minimumPayment.value : 0
+            minimumPayment: $hasMinimumPayment.value ? toCents($minimumPayment.value) : 0
         }
         let updatedCalculation: Calculation;
         if (purchase) {

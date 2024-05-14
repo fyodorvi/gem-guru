@@ -16,6 +16,7 @@
     import PurchaseModal from "../components/PurchaseModal.svelte";
     const { open } = getContext<Context>('simple-modal');
     import { calculation } from '../services/store';
+    import Currency from "../lib/Currency.svelte";
 
     let loading = true;
 
@@ -46,8 +47,8 @@
                 <li class="p-3 border-b border-l border-r first:border-t first:rounded-t-lg last:rounded-b-lg border-slate-300 sm:flex md:justify-between">
                     <div>
                         <Heading tag="h6">{purchase.name}</Heading>
-                        <div class="mt-3">Total: <span class="font-bold">${purchase.total}</span></div>
-                        <div class="mt-1">Remaining: <span class="font-bold">${purchase.remaining}</span> <Button class="inline-block ml-2 p-1" color="alternative"><DotsHorizontalOutline /></Button></div>
+                        <div class="mt-3">Total: <span class="font-bold"><Currency value={purchase.total} /></span></div>
+                        <div class="mt-1">Remaining: <span class="font-bold"><Currency value={purchase.remaining} /></span> <Button class="inline-block ml-2 p-1" color="alternative"><DotsHorizontalOutline /></Button></div>
                         <div class="mt-4"><CalendarMonthOutline class="inline-block" /> {new Date(purchase.expiryDate).toLocaleDateString()}</div>
                     </div>
                     <div class="sm:ml-auto w-44 sm:mt-10 mt-4">
@@ -70,14 +71,14 @@
                 {#each $calculation.purchases as purchase}
                 <TableBodyRow>
                     <TableBodyCell>{purchase.name}</TableBodyCell>
-                    <TableBodyCell>${purchase.paymentToday}</TableBodyCell>
+                    <TableBodyCell><Currency value={purchase.nextPayment} /></TableBodyCell>
                     <TableBodyCell>{purchase.paymentsTotal-purchase.paymentsDone}</TableBodyCell>
                 </TableBodyRow>
                 {/each}
             </TableBody>
         </Table>
-        <div class="text-xl mb-4">Total remaining: <span class="font-bold">${$calculation.totalRemaining}</span></div>
-        <div class="text-xl">Amount to pay today: <span class="font-bold bg-primary-300 p-2 rounded-xl">${$calculation.totalAmountToPay}</span></div>
+        <div class="text-xl mb-4">Total remaining: <span class="font-bold"><Currency value={$calculation.totalRemaining} /></span></div>
+        <div class="text-xl">Amount to pay on {$calculation.nextPaymentDate}: <span class="font-bold bg-primary-300 p-2 rounded-xl"><Currency value={$calculation.totalNextPayment} /></span></div>
     </div>
 {:else}
     <!-- <Skeleton /> -->

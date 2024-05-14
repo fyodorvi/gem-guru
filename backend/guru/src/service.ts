@@ -5,20 +5,22 @@ import {randomUUID} from "crypto";
 import * as _ from 'lodash';
 import {DateTime} from "luxon";
 
+const _getNextPaymentDate = (paymentDay: number): DateTime => {
+    if (DateTime.now().day > paymentDay) {
+        return DateTime.now().plus({month: 1}).set({day: paymentDay});
+    } else {
+        return DateTime.now().set({day: paymentDay});
+    }
+}
 
-function _calculateItemRepayment(item: Purchase, paymentDay: number): { payToday: number, paymentsDone: number, paymentsTotal: number } {
+const _calculateItemRepayment = (item: Purchase, paymentDay: number): { nextPayment: number, paymentsDone: number, paymentsTotal: number } => {
     const remaining = item.remaining;
     const minPayment = item.minimumPayment;
 
     const startDate = DateTime.fromISO(item.startDate);
     const expiryDate = DateTime.fromISO(item.expiryDate);
 
-    let nextPaymentDate: DateTime;
-    if (DateTime.now().day > paymentDay) {
-        nextPaymentDate = DateTime.now().plus({month: 1}).set({day: paymentDay});
-    } else {
-        nextPaymentDate = DateTime.now().set({day: paymentDay});
-    }
+    let nextPaymentDate = _getNextPaymentDate(paymentDay);
 
     let firstPaymentDate: DateTime;
     if (startDate.day > paymentDay) {
@@ -27,8 +29,8 @@ function _calculateItemRepayment(item: Purchase, paymentDay: number): { payToday
         firstPaymentDate = startDate.set({ day: paymentDay });
     }
 
-    const monthsLeftToRepay = Math.floor(expiryDate.diff(nextPaymentDate).as('months'));
-    const paymentsTotal = Math.floor(expiryDate.diff(firstPaymentDate).as('months'));
+    const monthsLeftToRepay = Math.ceil(expiryDate.diff(nextPaymentDate).as('months'));
+    const paymentsTotal = Math.ceil(expiryDate.diff(firstPaymentDate).as('months'));
     const paymentsDone = Math.floor(nextPaymentDate.diff(firstPaymentDate).as('months'))
 
     let payToday: number;
@@ -36,10 +38,10 @@ function _calculateItemRepayment(item: Purchase, paymentDay: number): { payToday
         payToday = minPayment;
     }
 
-    payToday = Math.ceil(remaining / monthsLeftToRepay * 100) / 100;
+    payToday = Math.ceil(remaining / monthsLeftToRepay);
 
     return {
-        payToday: payToday,
+        nextPayment: payToday,
         paymentsDone: paymentsDone,
         paymentsTotal: paymentsTotal
     };
@@ -51,19 +53,20 @@ export const calculate = async(userId: string, loadedPurchases?: Purchase[]): Pr
 
     const calculation: Calculation = {
         purchases: [],
-        totalAmountToPay: 0,
-        totalRemaining: 0
+        totalNextPayment: 0,
+        totalRemaining: 0,
+        nextPaymentDate: _getNextPaymentDate(profileSettings.paymentDay).toISODate() as string
     }
     for(const purchase of purchases) {
         const paymentMeta = _calculateItemRepayment(purchase, profileSettings.paymentDay);
         calculation.purchases.push({
             ...purchase,
-            paymentToday: paymentMeta.payToday,
+            nextPayment: paymentMeta.nextPayment,
             paymentsTotal: paymentMeta.paymentsTotal,
             paymentsDone: paymentMeta.paymentsDone
         });
         calculation.totalRemaining += purchase.remaining;
-        calculation.totalAmountToPay += paymentMeta.payToday;
+        calculation.totalNextPayment += paymentMeta.nextPayment;
     }
 
     return calculation;
