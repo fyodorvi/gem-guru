@@ -11,12 +11,12 @@
         TableBody, TableBodyRow, TableBodyCell
     } from 'flowbite-svelte';
     import { PlusOutline, DotsHorizontalOutline, CalendarMonthOutline } from 'flowbite-svelte-icons';
-    import {type CalculatedPurchase, type Calculation, loadCalculation, type Purchase} from "../services/api";
+    import {type CalculatedPurchase, loadCalculation} from "../services/api";
     import type { Context } from 'svelte-simple-modal';
     import PurchaseModal from "../components/PurchaseModal.svelte";
     const { open } = getContext<Context>('simple-modal');
     import { calculation } from '../services/store';
-    import Currency from "../lib/Currency.svelte";
+    import Currency from "../components/Currency.svelte";
 
     let loading = true;
 

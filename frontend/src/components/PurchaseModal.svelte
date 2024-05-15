@@ -1,6 +1,6 @@
 <script lang="ts">
-    import {Button, Checkbox, Input, Label, Spinner} from "flowbite-svelte";
-    import {field} from "svelte-forms";
+    import {Button, Checkbox, Helper, Input, Label, Spinner} from "flowbite-svelte";
+    import {field, form} from "svelte-forms";
     import {required} from "svelte-forms/validators";
     import {
         addPurchase,
@@ -13,6 +13,10 @@
     import type { Context } from 'svelte-simple-modal';
     import {getContext} from "svelte";
     import {calculation} from "../services/store";
+    import CurrencyInput from "../components/CurrencyInput.svelte";
+    import ValidatedFormElement from "./ValidatedFormElement.svelte";
+    import {writable} from "svelte/store";
+    import ValidatedInput from "./ValidatedInput.svelte";
     const { close } = getContext<Context>('simple-modal');
 
     export let purchase: CalculatedPurchase|undefined;
@@ -28,59 +32,60 @@
     }
 
     const name = field('name', purchase?.name || '', [required()]);
-    const total = field('total', purchase?.total || 0, [required()]);
-    const remaining = field('remaining', purchase?.remaining || 0, [required()]);
+    const total = field('total', purchase?.total ?  purchase?.total / 100 : 0, [required()]);
+    const remaining = field('remaining', purchase?.remaining ? purchase?.remaining / 100 : 0, [required()]);
     const startDate = field('startDate', parseDate(purchase?.startDate), [required()]);
-    const expiryDate = field('expiryDate', parseDate(purchase?.expiryDate), [required()]);
+    const expiryDate = field('expiryDate', parseDate(purchase?.expiryDate || DateTime.now().plus({month: 6}).toISODate()), [required()]);
     const hasMinimumPayment = field('hasMinimumPayment', purchase?.hasMinimumPayment || false);
-    const minimumPayment = field('minimumPayment', purchase?.minimumPayment || 0);
+    const minimumPayment = field('minimumPayment', purchase?.minimumPayment ? purchase?.minimumPayment / 100 : 0);
+
+    const purchaseForm = form(name, total, remaining, startDate, expiryDate, hasMinimumPayment, minimumPayment);
 
     let submitting = false;
     let deleting = false;
 
     const onSubmit = async() => {
-        submitting = true;
-        const newPurchase: Purchase = {
-            name: $name.value,
-            total: toCents($total.value),
-            remaining: toCents($remaining.value),
-            expiryDate: $expiryDate.value,
-            startDate: $startDate.value,
-            hasMinimumPayment: $hasMinimumPayment.value,
-            minimumPayment: $hasMinimumPayment.value ? toCents($minimumPayment.value) : 0
+        await purchaseForm.validate();
+        if ($purchaseForm.valid) {
+            submitting = true;
+            const newPurchase: Purchase = {
+                name: $name.value,
+                total: toCents($total.value),
+                remaining: toCents($remaining.value),
+                expiryDate: $expiryDate.value,
+                startDate: $startDate.value,
+                hasMinimumPayment: $hasMinimumPayment.value,
+                minimumPayment: $hasMinimumPayment.value ? toCents($minimumPayment.value) : 0
+            }
+            let updatedCalculation: Calculation;
+            if (purchase) {
+                updatedCalculation = await updatePurchase(purchase.id, newPurchase);
+            } else {
+                updatedCalculation = await addPurchase(newPurchase)
+            }
+            submitting = false;
+            calculation.update(() => updatedCalculation);
+            close();
         }
-        let updatedCalculation: Calculation;
-        if (purchase) {
-            updatedCalculation = await updatePurchase(purchase.id, newPurchase);
-        } else {
-            updatedCalculation = await addPurchase(newPurchase)
-        }
-        submitting = false;
-        calculation.update(() => updatedCalculation);
-        close();
     }
 </script>
 
 <form class="flex flex-col space-y-6" on:submit|preventDefault={onSubmit}>
     <h3 class="mb-2 text-xl font-medium text-gray-900 dark:text-white">Add Purchase</h3>
-    <Label class="space-y-2">
-        <span>Purchase Name</span>
-        <Input type="text" name="purchase_name" bind:value={$name.value} />
-    </Label>
+
+    <ValidatedInput title="Purchase Name"
+                    formStore={purchaseForm}
+                    bind:value={$name.value}
+                    validationMessages={{'name.required': 'Name is required'}} />
+
     <div class="sm:columns-2 space-y-2">
         <Label>
             <span>Total</span>
-            <Input let:props>
-                <div slot="left">$</div>
-                <input type="number" {...props} bind:value={$total.value} />
-            </Input>
+            <CurrencyInput bind:value={$total.value}/>
         </Label>
         <Label>
             <span>Remaining</span>
-            <Input let:props>
-                <div slot="left">$</div>
-                <input type="number" {...props} bind:value={$remaining.value} />
-            </Input>
+            <CurrencyInput bind:value={$remaining.value}/>
         </Label>
     </div>
     <div class="sm:columns-2 space-y-2">
@@ -97,10 +102,9 @@
         <Label>
             <span><Checkbox bind:checked={$hasMinimumPayment.value}>Minimum payment</Checkbox></span>
             {#if $hasMinimumPayment.value}
-                <Input let:props class="mt-2">
-                    <div slot="left">$</div>
-                    <input type="number" {...props} bind:value={$minimumPayment.value} />
-                </Input>
+                <div class="mt-2" >
+                    <CurrencyInput bind:value={$minimumPayment.value}/>
+                </div>
             {/if}
         </Label>
         <div>&nbsp;</div>
