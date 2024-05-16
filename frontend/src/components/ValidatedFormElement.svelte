@@ -5,6 +5,7 @@ import type {Writable} from "svelte/store";
 
 export let formStore: ReturnType<typeof form>;
 export let validationMessages: {[index:string]: string};
+export let title: string | undefined;
 
 export let errorStore: Writable<boolean>;
 let hasError: boolean;
@@ -14,8 +15,11 @@ $: errorStore.set(hasError);
 </script>
 
 <Label color={hasError ? 'red' : undefined} {...$$props} >
-    <slot name="title"></slot>
+    {#if title}
+        <span>{title}</span>
+    {/if}
     <slot />
+    <div>
     {#each Object.keys(validationMessages) as field}
         {#if $formStore.hasError(field)}
             <Helper class="mt-2" color="red">
@@ -23,4 +27,5 @@ $: errorStore.set(hasError);
             </Helper>
         {/if}
     {/each}
+    </div>
 </Label>
