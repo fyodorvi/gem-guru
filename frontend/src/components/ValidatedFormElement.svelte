@@ -14,9 +14,9 @@ $: hasError = Object.keys(validationMessages).find(field => $formStore.hasError(
 $: errorStore.set(hasError);
 </script>
 
-<Label color={hasError ? 'red' : undefined} {...$$props} >
+<Label color={hasError ? 'red' : 'gray'} {...$$props} >
     {#if title}
-        <span>{title}</span>
+        <span class="block mb-1">{title}</span>
     {/if}
     <slot />
     <div>

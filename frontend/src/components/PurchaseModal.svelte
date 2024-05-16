@@ -13,10 +13,10 @@
     import type { Context } from 'svelte-simple-modal';
     import {getContext} from "svelte";
     import {calculation} from "../services/store";
-    import CurrencyInput from "../components/CurrencyInput.svelte";
     import ValidatedInput from "./ValidatedInput.svelte";
     import ValidatedCurrencyInput from "./ValidatedCurrencyInput.svelte";
     const { close } = getContext<Context>('simple-modal');
+    import { CloseOutline } from 'flowbite-svelte-icons';
 
     export let purchase: CalculatedPurchase|undefined;
 
@@ -95,53 +95,68 @@
     }
 </script>
 
-<form class="flex flex-col space-y-6" on:submit|preventDefault={onSubmit}>
-    <h3 class="mb-2 text-xl font-medium text-gray-900 dark:text-white">Add Purchase</h3>
-
-    <ValidatedInput title="Purchase Name"
-                    formStore={purchaseForm}
-                    bind:value={$name.value}
-                    validationMessages={{'name.required': 'Name is required'}} />
-
-    <div class="sm:columns-2 space-y-2">
-        <ValidatedCurrencyInput
-                title="Total"
-                formStore={purchaseForm}
-                bind:value={$total.value}
-                validationMessages={{'total.min': 'Total has to be more than 0'}} />
-
-        <ValidatedCurrencyInput
-                title="Remaining"
-                formStore={purchaseForm}
-                bind:value={$remaining.value}
-                validationMessages={{'remaining.min': 'Remaining has to be more than 0', 'remaining.less_than_total': 'Remaining has to be less than Total'}} />
-    </div>
-    <div class="sm:columns-2 space-y-2">
-        <ValidatedInput title="Start Date"
-                        type="date"
+<div class="bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700 divide-gray-200 dark:divide-gray-700 flex justify-between items-center p-4 md:p-5 rounded-t-lg">
+    <h3 class="text-xl font-semibold p-0">Add Purchase</h3>
+    <button on:click={() => close()} class="focus:outline-none whitespace-normal m-0.5 rounded-lg focus:ring-2 p-1.5 focus:ring-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600 ms-auto">
+        <CloseOutline />
+    </button>
+</div>
+<div class="p-4 md:p-5 space-y-4 flex-1 overflow-y-auto overscroll-contain">
+    <form class="flex flex-col" on:submit|preventDefault={onSubmit}>
+        <ValidatedInput title="Purchase Name"
                         formStore={purchaseForm}
-                        bind:value={$startDate.value}
-                        validationMessages={{'startDate.required': 'Start date is required'}} />
-        <ValidatedInput title="Expiry Date"
-                        type="date"
+                        bind:value={$name.value}
+                        validationMessages={{'name.required': 'Name is required'}} />
+
+        <div class="sm:grid sm:grid-cols-2 sm:gap-4">
+            <div class="mt-5">
+                <ValidatedCurrencyInput
+                        title="Total"
                         formStore={purchaseForm}
-                        bind:value={$expiryDate.value}
-                        validationMessages={{'expiryDate.required': 'Expiry date is required', 'expiryDate.after_start_date': 'Expiry date has to be after Start date'}} />
-    </div>
-    <div class="sm:columns-2 space-y-2">
-        <Label>
-            <span><Checkbox bind:checked={$hasMinimumPayment.value}>Minimum payment</Checkbox></span>
-            {#if $hasMinimumPayment.value}
-                <div class="mt-2" >
-                    <ValidatedCurrencyInput
-                            formStore={purchaseForm}
-                            bind:value={$minimumPayment.value}
-                            validationMessages={{'minimumPayment.min': 'Minimum payment has to be more than 0', 'minimumPayment.less_than_total': 'Minimum payment has to be less than total'}} />
-                </div>
-            {/if}
-        </Label>
-        <div>&nbsp;</div>
-    </div>
-    <Button type="submit" class="w-full1" disabled={submitting}>{#if submitting}<Spinner class="me-3" size="4" color="white" />{/if} {#if purchase}Save{:else}Add{/if}</Button>
+                        bind:value={$total.value}
+                        validationMessages={{'total.min': 'Total has to be more than 0'}} />
+            </div>
+            <div class="mt-5">
+                <ValidatedCurrencyInput
+                        title="Remaining"
+                        formStore={purchaseForm}
+                        bind:value={$remaining.value}
+                        validationMessages={{'remaining.min': 'Remaining has to be more than 0', 'remaining.less_than_total': 'Remaining has to be less or equal Total'}} />
+            </div>
+        </div>
+        <div class="sm:grid sm:grid-cols-2 sm:gap-4">
+            <div class="mt-5">
+                <ValidatedInput title="Start Date"
+                                type="date"
+                                formStore={purchaseForm}
+                                bind:value={$startDate.value}
+                                validationMessages={{'startDate.required': 'Start date is required'}} />
+            </div>
+            <div class="mt-5">
+                <ValidatedInput title="Expiry Date"
+                                type="date"
+                                formStore={purchaseForm}
+                                bind:value={$expiryDate.value}
+                                validationMessages={{'expiryDate.required': 'Expiry date is required', 'expiryDate.after_start_date': 'Expiry date has to be after Start date'}} />
+            </div>
+        </div>
+        <div class="sm:grid sm:grid-cols-2 sm:gap-4 mt-5">
+            <Label>
+                <span><Checkbox bind:checked={$hasMinimumPayment.value}>Minimum payment</Checkbox></span>
+                {#if $hasMinimumPayment.value}
+                    <div class="mt-2" >
+                        <ValidatedCurrencyInput
+                                formStore={purchaseForm}
+                                bind:value={$minimumPayment.value}
+                                validationMessages={{'minimumPayment.min': 'Minimum payment has to be more than 0', 'minimumPayment.less_than_total': 'Minimum payment has to be less or equal Total'}} />
+                    </div>
+                {/if}
+            </Label>
+            <div>&nbsp;</div>
+        </div>
+    </form>
+</div>
+<div class="bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700 divide-gray-200 dark:divide-gray-700 p-4 md:p-5 space-x-3 rtl:space-x-reverse rounded-b-lg text-center">
     {#if purchase}<Button class="w-full1" color="red" disabled={deleting}>{#if deleting}<Spinner class="me-3" size="4" color="white" />{/if} Delete</Button>{/if}
-</form>
+    <Button on:click={() => onSubmit()} type="submit" disabled={submitting}>{#if submitting}<Spinner class="me-3" size="4" color="white" />{/if} {#if purchase}Save{:else}Add{/if}</Button>
+</div>
