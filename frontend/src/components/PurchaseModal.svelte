@@ -2,6 +2,7 @@
     import {Button, Checkbox, Helper, Input, Label, Spinner} from "flowbite-svelte";
     import {field, form} from "svelte-forms";
     import {min, required} from "svelte-forms/validators";
+    import {slide} from 'svelte/transition';
     import {
         addPurchase,
         type CalculatedPurchase,
@@ -96,7 +97,7 @@
 </script>
 
 <div class="bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700 divide-gray-200 dark:divide-gray-700 flex justify-between items-center p-4 md:p-5 rounded-t-lg">
-    <h3 class="text-xl font-semibold p-0">Add Purchase</h3>
+    <h3 class="text-xl font-semibold p-0">{#if purchase}Edit Purchase{:else}Add Purchase{/if}</h3>
     <button on:click={() => close()} class="focus:outline-none whitespace-normal m-0.5 rounded-lg focus:ring-2 p-1.5 focus:ring-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600 ms-auto">
         <CloseOutline />
     </button>
@@ -130,25 +131,27 @@
                                 type="date"
                                 formStore={purchaseForm}
                                 bind:value={$startDate.value}
-                                validationMessages={{'startDate.required': 'Start date is required'}} />
+                                validationMessages={{'startDate.required': 'Start Date is required'}} />
             </div>
             <div class="mt-5">
                 <ValidatedInput title="Expiry Date"
                                 type="date"
                                 formStore={purchaseForm}
                                 bind:value={$expiryDate.value}
-                                validationMessages={{'expiryDate.required': 'Expiry date is required', 'expiryDate.after_start_date': 'Expiry date has to be after Start date'}} />
+                                validationMessages={{'expiryDate.required': 'Expiry Date is required', 'expiryDate.after_start_date': 'Expiry Date has to be after Start Date'}} />
             </div>
         </div>
         <div class="sm:grid sm:grid-cols-2 sm:gap-4 mt-5">
             <Label>
                 <span><Checkbox bind:checked={$hasMinimumPayment.value}>Minimum payment</Checkbox></span>
                 {#if $hasMinimumPayment.value}
-                    <div class="mt-2" >
-                        <ValidatedCurrencyInput
-                                formStore={purchaseForm}
-                                bind:value={$minimumPayment.value}
-                                validationMessages={{'minimumPayment.min': 'Minimum payment has to be more than 0', 'minimumPayment.less_than_total': 'Minimum payment has to be less or equal Total'}} />
+                    <div class="mt-2">
+                        <div transition:slide={{ duration: 300 }}>
+                            <ValidatedCurrencyInput
+                                    formStore={purchaseForm}
+                                    bind:value={$minimumPayment.value}
+                                    validationMessages={{'minimumPayment.min': 'Minimum payment has to be more than 0', 'minimumPayment.less_than_total': 'Minimum payment has to be less or equal Total'}} />
+                        </div>
                     </div>
                 {/if}
             </Label>
