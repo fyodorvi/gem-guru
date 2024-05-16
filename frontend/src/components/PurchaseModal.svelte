@@ -103,7 +103,7 @@
     </button>
 </div>
 <div class="p-4 md:p-5 space-y-4 flex-1 overflow-y-auto overscroll-contain">
-    <form class="flex flex-col" on:submit|preventDefault={onSubmit}>
+    <form on:submit|preventDefault={onSubmit}>
         <ValidatedInput title="Purchase Name"
                         formStore={purchaseForm}
                         bind:value={$name.value}
@@ -157,6 +157,7 @@
             </Label>
             <div>&nbsp;</div>
         </div>
+        <input type="submit" hidden />
     </form>
 </div>
 <div class="bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700 divide-gray-200 dark:divide-gray-700 p-4 md:p-5 space-x-3 rtl:space-x-reverse rounded-b-lg text-center">
