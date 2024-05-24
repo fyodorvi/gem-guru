@@ -36,9 +36,9 @@ const _calculateItemRepayment = (item: Purchase, paymentDay: number): { nextPaym
     let payToday: number;
     if (item.hasMinimumPayment && minPayment !== undefined) {
         payToday = minPayment;
+    } else {
+        payToday = Math.ceil(remaining / monthsLeftToRepay);
     }
-
-    payToday = Math.ceil(remaining / monthsLeftToRepay);
 
     return {
         nextPayment: payToday,

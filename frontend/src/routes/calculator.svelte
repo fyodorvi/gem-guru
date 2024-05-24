@@ -10,13 +10,14 @@
         TableHeadCell,
         TableBody, TableBodyRow, TableBodyCell
     } from 'flowbite-svelte';
-    import { PlusOutline, DotsHorizontalOutline, CalendarMonthOutline } from 'flowbite-svelte-icons';
+    import { PlusOutline, DotsHorizontalOutline, CalendarMonthOutline, EditOutline } from 'flowbite-svelte-icons';
     import {type CalculatedPurchase, loadCalculation} from "../services/api";
     import type { Context } from 'svelte-simple-modal';
     import PurchaseModal from "../components/PurchaseModal.svelte";
     const { open } = getContext<Context>('simple-modal');
     import { calculation } from '../services/store';
     import Currency from "../components/Currency.svelte";
+    import RemainingModal from "../components/RemainingModal.svelte";
 
     let loading = true;
 
@@ -35,6 +36,10 @@
         open(PurchaseModal, { purchase })
     }
 
+    const editPurchaseRemaining = async(purchase: CalculatedPurchase) => {
+        open(RemainingModal, { purchase })
+    }
+
     const addPurchase = async () => {
         open(PurchaseModal, {})
     }
@@ -46,16 +51,19 @@
             {#each $calculation.purchases as purchase}
                 <li class="p-3 border-b border-l border-r first:border-t first:rounded-t-lg last:rounded-b-lg border-slate-300 sm:flex md:justify-between">
                     <div>
-                        <Heading tag="h6">{purchase.name}</Heading>
+                        <div on:click={() => editPurchase(purchase)} aria-label="Edit" class="cursor-pointer">
+                            <Heading tag="h6">
+                                {purchase.name} <EditOutline class="inline-block text-gray-500" />
+                            </Heading>
+                        </div>
                         <div class="mt-3">Total: <span class="font-bold"><Currency value={purchase.total} /></span></div>
-                        <div class="mt-1">Remaining: <span class="font-bold"><Currency value={purchase.remaining} /></span> <Button class="inline-block ml-2 p-1" color="alternative"><DotsHorizontalOutline /></Button></div>
+                        <div class="mt-1">Remaining: <span class="font-bold"><Currency value={purchase.remaining} /></span> <Button on:click={() => editPurchaseRemaining(purchase)} class="inline-block ml-2 p-1" color="alternative"><DotsHorizontalOutline /></Button></div>
                         <div class="mt-4"><CalendarMonthOutline class="inline-block" /> {new Date(purchase.expiryDate).toLocaleDateString()}</div>
                     </div>
                     <div class="sm:ml-auto w-44 sm:mt-10 mt-4">
                         Payments: {purchase.paymentsDone} out of {purchase.paymentsTotal}
                         <Progressbar progress={Math.floor(purchase.paymentsDone/purchase.paymentsTotal*100)} class="w-32 mt-2" />
                     </div>
-                    <Button on:click={() => editPurchase(purchase)}>Edit</Button>
                 </li>
             {/each}
         </ul>
@@ -78,7 +86,7 @@
             </TableBody>
         </Table>
         <div class="text-xl mb-4">Total remaining: <span class="font-bold"><Currency value={$calculation.totalRemaining} /></span></div>
-        <div class="text-xl">Amount to pay on {$calculation.nextPaymentDate}: <span class="font-bold bg-primary-300 p-2 rounded-xl"><Currency value={$calculation.totalNextPayment} /></span></div>
+        <div class="text-xl">Amount to pay on {new Date($calculation.nextPaymentDate).toLocaleDateString()}: <span class="font-bold bg-primary-300 p-2 rounded-xl"><Currency value={$calculation.totalNextPayment} /></span></div>
     </div>
 {:else}
     <!-- <Skeleton /> -->
