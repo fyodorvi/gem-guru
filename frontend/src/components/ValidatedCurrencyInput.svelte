@@ -10,9 +10,11 @@
 
     export let value: number;
 
+    export let autoFocus: boolean = false;
+
     let hasError = writable(false);
 </script>
 
 <ValidatedFormElement {title} errorStore={hasError} formStore={formStore} validationMessages={validationMessages}>
-    <CurrencyInput color={$hasError ? 'red' : undefined} type="text" bind:value={value} {...$$props} />
+    <CurrencyInput {autoFocus} color={$hasError ? 'red' : undefined} type="text" bind:value={value} {...$$props} />
 </ValidatedFormElement>

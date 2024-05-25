@@ -1,12 +1,12 @@
 <script lang="ts">
-    import {Button, Checkbox, Helper, Input, Label, Spinner} from "flowbite-svelte";
+    import {Button, Checkbox, Label, Spinner} from "flowbite-svelte";
     import {field, form} from "svelte-forms";
     import {min, required} from "svelte-forms/validators";
-    import {slide} from 'svelte/transition';
+    import {slide, fade, crossfade} from 'svelte/transition';
     import {
         addPurchase,
         type CalculatedPurchase,
-        type Calculation,
+        type Calculation, deletePurchase,
         type Purchase,
         updatePurchase
     } from "../services/api";
@@ -17,7 +17,10 @@
     import ValidatedInput from "./ValidatedInput.svelte";
     import ValidatedCurrencyInput from "./ValidatedCurrencyInput.svelte";
     const { close } = getContext<Context>('simple-modal');
-    import { CloseOutline } from 'flowbite-svelte-icons';
+    import ModalHeader from "./modal/ModalHeader.svelte";
+    import ModalContent from "./modal/ModalContent.svelte";
+    import ModalFooter from "./modal/ModalFooter.svelte";
+    import ModalCloseButton from "./modal/ModalCloseButton.svelte";
 
     export let purchase: CalculatedPurchase|undefined;
 
@@ -94,17 +97,39 @@
             close();
         }
     }
+
+    let deleteConfirmation = false;
+
+    const onDelete = () => {
+        deleteConfirmation = true;
+    }
+
+    const onDeleteConfirm = async () => {
+        deleting = true;
+
+        if (purchase) {
+            let updatedCalculation: Calculation;
+            updatedCalculation = await deletePurchase(purchase.id);
+            calculation.update(() => updatedCalculation);
+        }
+
+        close();
+        deleting = false;
+    }
+
+    const onDeleteCancel = () => {
+        deleteConfirmation = false;
+    }
 </script>
 
-<div class="bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700 divide-gray-200 dark:divide-gray-700 flex justify-between items-center p-4 md:p-5 rounded-t-lg">
+<ModalHeader>
     <h3 class="text-xl font-semibold p-0">{#if purchase}Edit Purchase{:else}Add Purchase{/if}</h3>
-    <button on:click={() => close()} class="focus:outline-none whitespace-normal m-0.5 rounded-lg focus:ring-2 p-1.5 focus:ring-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600 ms-auto">
-        <CloseOutline />
-    </button>
-</div>
-<div class="p-4 md:p-5 space-y-4 flex-1 overflow-y-auto overscroll-contain">
+    <ModalCloseButton />
+</ModalHeader>
+<ModalContent>
     <form on:submit|preventDefault={onSubmit}>
         <ValidatedInput title="Purchase Name"
+                        autoFocus={true}
                         formStore={purchaseForm}
                         bind:value={$name.value}
                         validationMessages={{'name.required': 'Name is required'}} />
@@ -159,8 +184,16 @@
         </div>
         <input type="submit" hidden />
     </form>
-</div>
-<div class="bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700 divide-gray-200 dark:divide-gray-700 p-4 md:p-5 space-x-3 rtl:space-x-reverse rounded-b-lg text-center">
-    {#if purchase}<Button class="w-full1" color="red" disabled={deleting}>{#if deleting}<Spinner class="me-3" size="4" color="white" />{/if} Delete</Button>{/if}
-    <Button on:click={() => onSubmit()} type="submit" disabled={submitting}>{#if submitting}<Spinner class="me-3" size="4" color="white" />{/if} {#if purchase}Save{:else}Add{/if}</Button>
-</div>
+</ModalContent>
+<ModalFooter>
+    {#if deleteConfirmation}
+    <div>
+        <span class="pr-2">Are you sure?</span> <Button on:click={() => onDeleteConfirm()} disabled={deleting} class="w-full1" color="red">{#if deleting}<Spinner class="me-3" size="4" color="white" />{/if} Yes, Delete</Button> <Button disabled={deleting} on:click={() => onDeleteCancel()} class="w-full1" color="alternative">No</Button>
+    </div>
+    {:else}
+    <div>
+        {#if purchase}<Button on:click={() => onDelete()} class="w-full1" color="red">Delete</Button>{/if}
+        <Button on:click={() => onSubmit()} type="submit" disabled={submitting}>{#if submitting}<Spinner class="me-3" size="4" color="white" />{/if} {#if purchase}Save{:else}Add{/if}</Button>
+    </div>
+    {/if}
+</ModalFooter>

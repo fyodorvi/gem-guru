@@ -37,7 +37,7 @@
     }
 
     const editPurchaseRemaining = async(purchase: CalculatedPurchase) => {
-        open(RemainingModal, { purchase })
+        open(RemainingModal, { purchase }, { classWindow: 'flex relative max-w-sm w-full max-h-full' })
     }
 
     const addPurchase = async () => {
