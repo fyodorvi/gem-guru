@@ -33,6 +33,10 @@ export interface Purchase {
     minimumPayment?: number;
 }
 
+export interface ProfileSettings {
+    paymentDay: nubmer;
+}
+
 async function getHeaders() {
     const { getAccessToken } = useAuth0;
     const token = await getAccessToken({ authorizationParams: { audience: import.meta.env.VITE_API_URL }});
@@ -67,7 +71,14 @@ export async function deletePurchase(purchaseId: string): Promise<Calculation> {
     return apiPOST(`/purchase/${purchaseId}/delete`);
 }
 
-
 export async function addPurchase(purchase: Purchase): Promise<Calculation> {
     return apiPOST('/purchase/add', purchase);
+}
+
+export async function setProfile(profileSettings: ProfileSettings): Promise<void> {
+    return apiPOST('/profile', profileSettings);
+}
+
+export async function getProfile(): Promise<ProfileSettings> {
+    return apiGET('/profile');
 }

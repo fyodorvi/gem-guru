@@ -2,6 +2,7 @@
 import type {form} from "svelte-forms";
 import {Helper, Label} from "flowbite-svelte";
 import type {Writable} from "svelte/store";
+import {fade} from 'svelte/transition';
 
 export let formStore: ReturnType<typeof form>;
 export let validationMessages: {[index:string]: string};
@@ -22,9 +23,11 @@ $: errorStore.set(hasError);
     <div>
     {#each Object.keys(validationMessages) as field}
         {#if $formStore.hasError(field)}
-            <Helper class="mt-2" color="red">
-                {validationMessages[field]}
-            </Helper>
+            <div in:fade={{duration:200}}>
+                <Helper class="mt-2" color="red">
+                    {validationMessages[field]}
+                </Helper>
+            </div>
         {/if}
     {/each}
     </div>

@@ -1,7 +1,8 @@
 import { Request, Response, Router } from 'express';
-import {addPurchase, calculate, removePurchase, updatePurchase} from "./service";
+import {addPurchase, calculate, getProfile, removePurchase, setProfile, updatePurchase} from "./service";
 import {validateBody} from "../middleware/validation";
 import {Purchase} from "./models/purchase";
+import {ProfileSettings} from "./models/profileSettings";
 
 const router = Router();
 
@@ -19,9 +20,27 @@ const _getUserId = (req: Request): string => {
     return auth.payload.sub;
 }
 
+router.get('/profile',  async (req: Request, res: Response) => {
+    const userId = _getUserId(req);
+
+    const profileSettings = await getProfile(userId);
+
+    res.status(200).json(profileSettings);
+});
+
+router.post('/profile', validateBody(ProfileSettings), async (req: Request, res: Response) => {
+    const userId = _getUserId(req);
+    const profileSettings = req.body;
+
+    await setProfile(userId, profileSettings);
+
+    res.status(200).json();
+});
+
+
 router.post('/purchase/add', validateBody(Purchase), async (req: Request, res: Response) => {
     const userId = _getUserId(req);
-    const purchase = req.body; // TODO: validate
+    const purchase = req.body;
 
     const calculation = await addPurchase(userId, purchase);
 

@@ -16,8 +16,9 @@
     import PurchaseModal from "../components/PurchaseModal.svelte";
     const { open } = getContext<Context>('simple-modal');
     import { calculation } from '../services/store';
-    import Currency from "../components/Currency.svelte";
+    import Currency from "../components/display/Currency.svelte";
     import RemainingModal from "../components/RemainingModal.svelte";
+    import FormattedDate from "../components/display/FormattedDate.svelte";
 
     let loading = true;
 
@@ -53,7 +54,7 @@
                     <div>
                         <div on:click={() => editPurchase(purchase)} aria-label="Edit" class="cursor-pointer">
                             <Heading tag="h6">
-                                {purchase.name} <EditOutline class="inline-block text-gray-500" />
+                                {purchase.name} <EditOutline class="inline-block" />
                             </Heading>
                         </div>
                         <div class="mt-3">Total: <span class="font-bold"><Currency value={purchase.total} /></span></div>
@@ -86,7 +87,7 @@
             </TableBody>
         </Table>
         <div class="text-xl mb-4">Total remaining: <span class="font-bold"><Currency value={$calculation.totalRemaining} /></span></div>
-        <div class="text-xl">Amount to pay on {new Date($calculation.nextPaymentDate).toLocaleDateString()}: <span class="font-bold bg-primary-300 p-2 rounded-xl"><Currency value={$calculation.totalNextPayment} /></span></div>
+        <div class="text-xl">Amount to pay on <span class="font-bold"><FormattedDate value={$calculation.nextPaymentDate}/></span>: <span class="font-bold bg-primary-300 p-2 rounded-xl dark:text-black"><Currency value={$calculation.totalNextPayment} /></span></div>
     </div>
 {:else}
     <!-- <Skeleton /> -->

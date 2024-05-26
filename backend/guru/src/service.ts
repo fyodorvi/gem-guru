@@ -1,9 +1,10 @@
 import {Purchase} from "./models/purchase";
 import {Calculation} from "./models/calculation";
-import {getProfileSettings, getPurchases, savePurchases} from "./repository";
+import {getProfileSettings, getPurchases, savePurchases, setProfileSettings} from "./repository";
 import {randomUUID} from "crypto";
 import * as _ from 'lodash';
 import {DateTime} from "luxon";
+import {ProfileSettings} from "./models/profileSettings";
 
 const _getNextPaymentDate = (paymentDay: number): DateTime => {
     if (DateTime.now().day > paymentDay) {
@@ -55,7 +56,7 @@ export const calculate = async(userId: string, loadedPurchases?: Purchase[]): Pr
         purchases: [],
         totalNextPayment: 0,
         totalRemaining: 0,
-        nextPaymentDate: _getNextPaymentDate(profileSettings.paymentDay).toISODate() as string
+        nextPaymentDate: _getNextPaymentDate(profileSettings.paymentDay).toISO() as string
     }
     for(const purchase of purchases) {
         const paymentMeta = _calculateItemRepayment(purchase, profileSettings.paymentDay);
@@ -96,4 +97,12 @@ export const updatePurchase = async(userId: string, purchaseId: string, purchase
     _.assign(existingPurchase, purchase);
     await savePurchases(userId, purchases);
     return calculate(userId, purchases);
+}
+
+export const getProfile = async(userId: string): Promise<ProfileSettings> => {
+    return await getProfileSettings(userId);
+}
+
+export const setProfile = async(userId: string, profileSettings: ProfileSettings): Promise<void> => {
+    return await setProfileSettings(userId, profileSettings);
 }

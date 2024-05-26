@@ -9,7 +9,7 @@
     import type { Context } from 'svelte-simple-modal';
     import {getContext, onMount} from "svelte";
     import {calculation} from "../services/store";
-    import ValidatedCurrencyInput from "./ValidatedCurrencyInput.svelte";
+    import ValidatedCurrencyInput from "./input/ValidatedCurrencyInput.svelte";
     import {toCents, toCurrencyDisplay} from "../services/format";
     import ModalCloseButton from "./modal/ModalCloseButton.svelte";
     import ModalFooter from "./modal/ModalFooter.svelte";

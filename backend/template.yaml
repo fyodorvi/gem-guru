@@ -170,6 +170,18 @@ Resources:
             Path: /purchase/{id}/delete
             RestApiId: !Ref RestApiGateway # Add the RestApiId property
             Method: post
+        GetProfile:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /profile
+            RestApiId: !Ref RestApiGateway # Add the RestApiId property
+            Method: get
+        SetProfile:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /profile
+            RestApiId: !Ref RestApiGateway # Add the RestApiId property
+            Method: post
     Metadata: # Manage esbuild properties
       BuildMethod: esbuild
       BuildProperties:

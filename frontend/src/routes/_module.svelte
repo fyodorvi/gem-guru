@@ -50,6 +50,7 @@
                 <DropdownHeader>
                     <span class="block truncate text-sm font-medium">{$user.email}</span>
                 </DropdownHeader>
+                <DropdownItem href="/profile">Profile</DropdownItem>
                 <DropdownItem on:click={() => logout({ logoutParams: {returnTo: window.location.origin,}})}>Sign out</DropdownItem>
             </Dropdown>
             <NavUl>

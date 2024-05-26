@@ -2,7 +2,7 @@
     import {Button, Checkbox, Label, Spinner} from "flowbite-svelte";
     import {field, form} from "svelte-forms";
     import {min, required} from "svelte-forms/validators";
-    import {slide, fade, crossfade} from 'svelte/transition';
+    import {slide, fade} from 'svelte/transition';
     import {
         addPurchase,
         type CalculatedPurchase,
@@ -14,8 +14,8 @@
     import type { Context } from 'svelte-simple-modal';
     import {getContext} from "svelte";
     import {calculation} from "../services/store";
-    import ValidatedInput from "./ValidatedInput.svelte";
-    import ValidatedCurrencyInput from "./ValidatedCurrencyInput.svelte";
+    import ValidatedInput from "./input/ValidatedInput.svelte";
+    import ValidatedCurrencyInput from "./input/ValidatedCurrencyInput.svelte";
     const { close } = getContext<Context>('simple-modal');
     import ModalHeader from "./modal/ModalHeader.svelte";
     import ModalContent from "./modal/ModalContent.svelte";
@@ -186,14 +186,16 @@
     </form>
 </ModalContent>
 <ModalFooter>
-    {#if deleteConfirmation}
-    <div>
-        <span class="pr-2">Are you sure?</span> <Button on:click={() => onDeleteConfirm()} disabled={deleting} class="w-full1" color="red">{#if deleting}<Spinner class="me-3" size="4" color="white" />{/if} Yes, Delete</Button> <Button disabled={deleting} on:click={() => onDeleteCancel()} class="w-full1" color="alternative">No</Button>
+    <div class="grid h-10">
+        {#if deleteConfirmation}
+        <div transition:fade={{duration: 200}} style="grid-area: 1/1;">
+            <span class="pr-2">Are you sure?</span> <Button on:click={() => onDeleteConfirm()} disabled={deleting} class="w-full1" color="red">{#if deleting}<Spinner class="me-3" size="4" color="white" />{/if} Yes, Delete</Button> <Button disabled={deleting} on:click={() => onDeleteCancel()} color="light">Cancel</Button>
+        </div>
+        {:else}
+        <div transition:fade={{duration: 200}} style="grid-area: 1/1;">
+            {#if purchase}<Button on:click={() => onDelete()} class="w-full1" color="red">Delete</Button>{/if}
+            <Button on:click={() => onSubmit()} type="submit" disabled={submitting}>{#if submitting}<Spinner class="me-3" size="4" color="white" />{/if} {#if purchase}Save{:else}Add{/if}</Button>
+        </div>
+        {/if}
     </div>
-    {:else}
-    <div>
-        {#if purchase}<Button on:click={() => onDelete()} class="w-full1" color="red">Delete</Button>{/if}
-        <Button on:click={() => onSubmit()} type="submit" disabled={submitting}>{#if submitting}<Spinner class="me-3" size="4" color="white" />{/if} {#if purchase}Save{:else}Add{/if}</Button>
-    </div>
-    {/if}
 </ModalFooter>
