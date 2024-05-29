@@ -1,6 +1,6 @@
 import * as repository from '../../src/repository';
 import {Purchase} from "../../src/models/purchase";
-import {calculate} from "../../src/service";
+import {calculate, calculateProjection} from "../../src/service";
 import {Calculation} from "../../src/models/calculation";
 
 describe('Service', () => {
@@ -100,5 +100,22 @@ describe('Service', () => {
                 }]
             } as Calculation);
         });
+    });
+
+    describe('calculateProjection', () => {
+        it('should provide correct calculation projection calculation', async () => {
+            const purchases: Purchase[] = [{
+                total: 1000,
+                remaining: 1000,
+                startDate: '2024-01-01',
+                expiryDate: '2024-04-01',
+                hasMinimumPayment: false,
+                name: 'test'
+            }]
+            const projection = await calculateProjection('any', purchases);
+
+            console.log(projection);
+        });
+
     });
 });

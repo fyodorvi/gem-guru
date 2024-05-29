@@ -1,5 +1,13 @@
 import { Request, Response, Router } from 'express';
-import {addPurchase, calculate, getProfile, removePurchase, setProfile, updatePurchase} from "./service";
+import {
+    addPurchase,
+    calculate,
+    calculateProjection,
+    getProfile,
+    removePurchase,
+    setProfile,
+    updatePurchase
+} from "./service";
 import {validateBody} from "../middleware/validation";
 import {Purchase} from "./models/purchase";
 import {ProfileSettings} from "./models/profileSettings";
@@ -82,6 +90,14 @@ router.get('/calculate', async (req: Request, res: Response) => {
 
     res.status(200).json(calculation);
 });
+
+router.get('/projection', async (req: Request, res: Response) => {
+    const userId = _getUserId(req);
+    const projection = await calculateProjection(userId);
+
+    res.status(200).json(projection);
+});
+
 
 
 export default router;

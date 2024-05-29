@@ -152,6 +152,12 @@ Resources:
             Path: /calculate
             RestApiId: !Ref RestApiGateway # Add the RestApiId property
             Method: get
+        LoadProjection:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /projection
+            RestApiId: !Ref RestApiGateway # Add the RestApiId property
+            Method: get
         AddPurchase:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:

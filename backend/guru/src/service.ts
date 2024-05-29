@@ -5,6 +5,7 @@ import {randomUUID} from "crypto";
 import * as _ from 'lodash';
 import {DateTime} from "luxon";
 import {ProfileSettings} from "./models/profileSettings";
+import {Projection} from "./models/projection";
 
 const _getNextPaymentDate = (paymentDay: number): DateTime => {
     if (DateTime.now().day > paymentDay) {
@@ -14,63 +15,107 @@ const _getNextPaymentDate = (paymentDay: number): DateTime => {
     }
 }
 
-const _calculateItemRepayment = (item: Purchase, paymentDay: number): { nextPayment: number, paymentsDone: number, paymentsTotal: number } => {
+const _getFirstPaymentDate = (item: Purchase, paymentDay: number): DateTime => {
+    const startDate = DateTime.fromISO(item.startDate);
+    if (startDate.day > paymentDay) {
+        return startDate.plus({ month: 1 }).set({ day: paymentDay });
+    } else {
+        return startDate.set({ day: paymentDay });
+    }
+}
+
+const _calculateItemRepayment = (item: Purchase, nextPaymentDate: DateTime): number => {
     const remaining = item.remaining;
     const minPayment = item.minimumPayment;
 
-    const startDate = DateTime.fromISO(item.startDate);
     const expiryDate = DateTime.fromISO(item.expiryDate);
 
-    let nextPaymentDate = _getNextPaymentDate(paymentDay);
-
-    let firstPaymentDate: DateTime;
-    if (startDate.day > paymentDay) {
-        firstPaymentDate = startDate.plus({ month: 1 }).set({ day: paymentDay });
-    } else {
-        firstPaymentDate = startDate.set({ day: paymentDay });
-    }
-
     const monthsLeftToRepay = Math.ceil(expiryDate.diff(nextPaymentDate).as('months'));
+
+    if (item.hasMinimumPayment && minPayment !== undefined) {
+        return minPayment;
+    } else {
+        if (monthsLeftToRepay <= 1) {
+            return remaining;
+        } else {
+            return Math.ceil(remaining / monthsLeftToRepay);
+        }
+    }
+}
+
+const _calculateItemPayments = (item: Purchase, firstPaymentDate: DateTime, nextPaymentDate: DateTime): { paymentsDone: number, paymentsTotal: number } => {
+    const expiryDate = DateTime.fromISO(item.expiryDate);
+
     const paymentsTotal = Math.ceil(expiryDate.diff(firstPaymentDate).as('months'));
     const paymentsDone = Math.floor(nextPaymentDate.diff(firstPaymentDate).as('months'))
 
-    let payToday: number;
-    if (item.hasMinimumPayment && minPayment !== undefined) {
-        payToday = minPayment;
-    } else {
-        payToday = Math.ceil(remaining / monthsLeftToRepay);
-    }
-
     return {
-        nextPayment: payToday,
-        paymentsDone: paymentsDone,
-        paymentsTotal: paymentsTotal
-    };
+        paymentsDone,
+        paymentsTotal
+    }
 }
 
 export const calculate = async(userId: string, loadedPurchases?: Purchase[]): Promise<Calculation> => {
     const purchases = loadedPurchases || await getPurchases(userId);
     const profileSettings = await getProfileSettings(userId);
 
+    const nextPaymentDate = _getNextPaymentDate(profileSettings.paymentDay);
+
     const calculation: Calculation = {
         purchases: [],
         totalNextPayment: 0,
         totalRemaining: 0,
-        nextPaymentDate: _getNextPaymentDate(profileSettings.paymentDay).toISO() as string
+        nextPaymentDate: nextPaymentDate.toISO() as string
     }
     for(const purchase of purchases) {
-        const paymentMeta = _calculateItemRepayment(purchase, profileSettings.paymentDay);
+        const firstPayment = _getFirstPaymentDate(purchase, profileSettings.paymentDay);
+        const nextPayment = _calculateItemRepayment(purchase, nextPaymentDate);
+        const { paymentsTotal, paymentsDone } = _calculateItemPayments(purchase, firstPayment, nextPaymentDate);
         calculation.purchases.push({
             ...purchase,
-            nextPayment: paymentMeta.nextPayment,
-            paymentsTotal: paymentMeta.paymentsTotal,
-            paymentsDone: paymentMeta.paymentsDone
+            nextPayment,
+            paymentsTotal,
+            paymentsDone
         });
         calculation.totalRemaining += purchase.remaining;
-        calculation.totalNextPayment += paymentMeta.nextPayment;
+        calculation.totalNextPayment += nextPayment;
     }
 
     return calculation;
+}
+
+export const calculateProjection = async(userId: string, loadedPurchases?: Purchase[]): Promise<Projection> => {
+    const purchases = loadedPurchases || await getPurchases(userId);
+
+    const profileSettings = await getProfileSettings(userId);
+    const firstPaymentDate = _getNextPaymentDate(profileSettings.paymentDay);
+
+    const resultProjection: Projection = {
+        months: []
+    };
+
+    const paidOffMap: { [index: string]: number } = {};
+
+    for(let i=0; i < 12; i++) {
+        const nextPaymentDate = firstPaymentDate.plus({ month: i });
+        let totalAmountToPay = 0;
+        for (const purchase of purchases) {
+            if (paidOffMap[purchase.id!] === undefined) {
+                paidOffMap[purchase.id!] = 0;
+            }
+            const clonedPurchase = _.clone(purchase);
+            clonedPurchase.remaining -= paidOffMap[purchase.id!];
+            const nextPayment = _calculateItemRepayment(clonedPurchase, nextPaymentDate);
+            totalAmountToPay += nextPayment;
+            paidOffMap[purchase.id!] += nextPayment;
+        }
+        resultProjection.months.push({
+            date: nextPaymentDate.toFormat('LLLL yyyy'),
+            amountToPay: Math.max(totalAmountToPay, 0)
+        })
+    }
+
+    return resultProjection;
 }
 
 export const addPurchase = async(userId: string, purchase: Purchase): Promise<Calculation> => {

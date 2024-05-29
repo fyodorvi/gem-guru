@@ -1,6 +1,15 @@
 import {useAuth0} from "../services/auth0";
 import axios from 'axios';
 
+export interface CalculatedProjectionMonth {
+    date: string;
+    amountToPay: number;
+}
+
+export interface CalculatedProjection {
+    months: CalculatedProjectionMonth[];
+}
+
 export interface CalculatedPurchase {
     id: string;
     name: string;
@@ -34,7 +43,7 @@ export interface Purchase {
 }
 
 export interface ProfileSettings {
-    paymentDay: nubmer;
+    paymentDay: number;
 }
 
 async function getHeaders() {
@@ -61,6 +70,10 @@ async function apiPOST(url: string, body?: any) {
 
 export async function loadCalculation(): Promise<Calculation> {
     return apiGET('/calculate');
+}
+
+export async function loadProjection(): Promise<CalculatedProjection> {
+    return apiGET('/projection');
 }
 
 export async function updatePurchase(purchaseId: string, purchase: Purchase): Promise<Calculation> {
