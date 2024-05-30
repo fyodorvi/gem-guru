@@ -26,7 +26,7 @@ describe('Service', () => {
             expect(calculation).toEqual({
                 totalRemaining: 1000,
                 totalNextPayment: 500,
-                nextPaymentDate: '2024-01-15',
+                nextPaymentDate: '2024-01-15T13:00:00.000+13:00',
                 purchases: [{
                     name: 'test',
                     total: 1000,
@@ -57,7 +57,7 @@ describe('Service', () => {
             expect(calculation).toEqual({
                 totalRemaining: 500,
                 totalNextPayment: 500,
-                nextPaymentDate: '2024-02-15',
+                nextPaymentDate: '2024-02-15T13:00:00.000+13:00',
                 purchases: [{
                     name: 'test',
                     total: 1000,
@@ -85,13 +85,13 @@ describe('Service', () => {
 
             expect(calculation).toEqual({
                 totalRemaining: 1000,
-                totalNextPayment: 333.34,
-                nextPaymentDate: '2024-01-15',
+                totalNextPayment: 334,
+                nextPaymentDate: '2024-01-15T13:00:00.000+13:00',
                 purchases: [{
                     name: 'test',
                     total: 1000,
                     remaining: 1000,
-                    nextPayment: 333.34,
+                    nextPayment: 334,
                     paymentsTotal: 3,
                     paymentsDone: 0,
                     startDate: '2024-01-01',
@@ -114,7 +114,66 @@ describe('Service', () => {
             }]
             const projection = await calculateProjection('any', purchases);
 
-            console.log(projection);
+            expect(projection).toEqual({
+                months: [
+                    { date: 'January 2024', amountToPay: 334 },
+                    { date: 'February 2024', amountToPay: 333 },
+                    { date: 'March 2024', amountToPay: 333 },
+                    { date: 'April 2024', amountToPay: 0 },
+                    { date: 'May 2024', amountToPay: 0 },
+                    { date: 'June 2024', amountToPay: 0 },
+                    { date: 'July 2024', amountToPay: 0 },
+                    { date: 'August 2024', amountToPay: 0 },
+                    { date: 'September 2024', amountToPay: 0 },
+                    { date: 'October 2024', amountToPay: 0 },
+                    { date: 'November 2024', amountToPay: 0 },
+                    { date: 'December 2024', amountToPay: 0 }
+                ]
+            });
+        });
+
+        it('should provide correct calculation projection for multiple purchases', async () => {
+            jest.spyOn(repository, 'getProfileSettings').mockResolvedValue({
+                paymentDay: 27
+            });
+
+            jest.useFakeTimers().setSystemTime(new Date('2024-05-30'));
+
+            const purchases: Purchase[] = [{
+                total: 12000,
+                remaining: 12000,
+                startDate: '2024-01-30',
+                expiryDate: '2024-11-25',
+                hasMinimumPayment: false,
+                name: 'test',
+                id: '1'
+            }, {
+                total: 3000,
+                remaining: 3000,
+                startDate: '2024-05-25',
+                expiryDate: '2024-11-25',
+                hasMinimumPayment: false,
+                name: 'test2',
+                id: '2'
+            }];
+            const projection = await calculateProjection('any', purchases);
+
+            expect(projection).toEqual({
+                months: [
+                    { date: 'June 2024', amountToPay: 3000 },
+                    { date: 'July 2024', amountToPay: 3000 },
+                    { date: 'August 2024', amountToPay: 3000 },
+                    { date: 'September 2024', amountToPay: 3000 },
+                    { date: 'October 2024', amountToPay: 3000 },
+                    { date: 'November 2024', amountToPay: 0 },
+                    { date: 'December 2024', amountToPay: 0 },
+                    { date: 'January 2025', amountToPay: 0 },
+                    { date: 'February 2025', amountToPay: 0 },
+                    { date: 'March 2025', amountToPay: 0 },
+                    { date: 'April 2025', amountToPay: 0 },
+                    { date: 'May 2025', amountToPay: 0 }
+                ]
+            });
         });
 
     });

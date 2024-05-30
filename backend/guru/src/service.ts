@@ -18,10 +18,20 @@ const _getNextPaymentDate = (paymentDay: number): DateTime => {
 const _getFirstPaymentDate = (item: Purchase, paymentDay: number): DateTime => {
     const startDate = DateTime.fromISO(item.startDate);
     if (startDate.day > paymentDay) {
-        return startDate.plus({ month: 1 }).set({ day: paymentDay });
+        return startDate.plus({ month: 1 }).set({ day: paymentDay, hour: 0, minute: 0, second: 0 });
     } else {
-        return startDate.set({ day: paymentDay });
+        return startDate.set({ day: paymentDay, hour: 0, minute: 0, second: 0 });
     }
+}
+
+const _getPaymentsLeft = (nextPaymentDate: DateTime, expiryDate: DateTime): number => {
+    let resultPayments = 0;
+    let lastPayment = nextPaymentDate;
+    while (lastPayment < expiryDate) {
+        resultPayments++;
+        lastPayment = lastPayment.plus({ month: 1 });
+    }
+    return resultPayments;
 }
 
 const _calculateItemRepayment = (item: Purchase, nextPaymentDate: DateTime): number => {
@@ -29,25 +39,24 @@ const _calculateItemRepayment = (item: Purchase, nextPaymentDate: DateTime): num
     const minPayment = item.minimumPayment;
 
     const expiryDate = DateTime.fromISO(item.expiryDate);
-
-    const monthsLeftToRepay = Math.ceil(expiryDate.diff(nextPaymentDate).as('months'));
+    const paymentsLeft = _getPaymentsLeft(nextPaymentDate, expiryDate);
 
     if (item.hasMinimumPayment && minPayment !== undefined) {
         return minPayment;
     } else {
-        if (monthsLeftToRepay <= 1) {
+        if (paymentsLeft === 0) {
             return remaining;
         } else {
-            return Math.ceil(remaining / monthsLeftToRepay);
+            return Math.ceil(remaining / paymentsLeft);
         }
     }
 }
 
 const _calculateItemPayments = (item: Purchase, firstPaymentDate: DateTime, nextPaymentDate: DateTime): { paymentsDone: number, paymentsTotal: number } => {
-    const expiryDate = DateTime.fromISO(item.expiryDate);
+    const expiryDate = DateTime.fromISO(item.expiryDate).set({ hour: 0, minute: 0, second: 0 });
 
-    const paymentsTotal = Math.ceil(expiryDate.diff(firstPaymentDate).as('months'));
-    const paymentsDone = Math.floor(nextPaymentDate.diff(firstPaymentDate).as('months'))
+    const paymentsTotal = _getPaymentsLeft(firstPaymentDate, expiryDate);
+    const paymentsDone = paymentsTotal - _getPaymentsLeft(nextPaymentDate, expiryDate);
 
     return {
         paymentsDone,
