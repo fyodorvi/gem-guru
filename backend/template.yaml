@@ -46,6 +46,19 @@ Parameters:
     Type: String
 
 Resources:
+  PdfParseLayer:
+    Type: AWS::Serverless::LayerVersion # More info about LayerVersion: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-layerversion.html
+    Properties:
+      LayerName: pdf-parse-layer
+      Description: Layer containing pdf-parse module
+      ContentUri: layers/pdf-parse/
+      CompatibleRuntimes:
+        - nodejs20.x
+      CompatibleArchitectures:
+        - x86_64
+    Metadata:
+      BuildMethod: nodejs20.x
+
   FrontendBucket:
     Type: AWS::S3::Bucket
 
@@ -140,6 +153,8 @@ Resources:
       Policies: AmazonDynamoDBFullAccess
       Architectures:
       - x86_64
+      Layers:
+        - !Ref PdfParseLayer
       Events:
         HelloWorld:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
@@ -198,6 +213,11 @@ Resources:
     Metadata: # Manage esbuild properties
       BuildMethod: esbuild
       BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: true
+        EntryPoints:
+          - app.ts
         External:
           - 'pdf-parse'
 

@@ -1,0 +1,8 @@
+{
+  "name": "pdf-parse-layer",
+  "version": "1.0.0",
+  "description": "Lambda layer for pdf-parse module",
+  "dependencies": {
+    "pdf-parse": "^1.1.1"
+  }
+} 
