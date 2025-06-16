@@ -65,3 +65,8 @@ jobs:
           aws s3 cp frontend/dist/client \
             s3://${{ env.frontend_bucket_name }} \
             --recursive
+      - name: Invalidate CloudFront
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id E4ZGC99OTW2G \
+            --paths "/*"
