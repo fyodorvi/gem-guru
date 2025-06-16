@@ -10,8 +10,8 @@
         TableHeadCell,
         TableBody, TableBodyRow, TableBodyCell
     } from 'flowbite-svelte';
-    import { PlusOutline, DotsHorizontalOutline, CalendarMonthOutline, EditOutline } from 'flowbite-svelte-icons';
-    import {type CalculatedPurchase, loadCalculation} from "../services/api";
+    import { PlusOutline, DotsHorizontalOutline, CalendarMonthOutline, EditOutline, CheckCircleOutline, TrashBinOutline } from 'flowbite-svelte-icons';
+    import {type CalculatedPurchase, loadCalculation, deletePurchase} from "../services/api";
     import type { Context } from 'svelte-simple-modal';
     import PurchaseModal from "../components/PurchaseModal.svelte";
     const { open } = getContext<Context>('simple-modal');
@@ -21,6 +21,7 @@
     import FormattedDate from "../components/display/FormattedDate.svelte";
 
     let loading = true;
+    let deleting: string | null = null;
 
     const reloadCalculation = async() => {
         const updatedCalculation = await loadCalculation();
@@ -44,27 +45,75 @@
     const addPurchase = async () => {
         open(PurchaseModal, {})
     }
+
+    const deletePaidOffPurchase = async (purchase: CalculatedPurchase) => {
+        deleting = purchase.id;
+        try {
+            const updatedCalculation = await deletePurchase(purchase.id);
+            calculation.update(() => updatedCalculation);
+        } finally {
+            deleting = null;
+        }
+    }
+
+    // Sort purchases: paid-off ($0 remaining) at top
+    $: sortedPurchases = $calculation.purchases.slice().sort((a, b) => {
+        if (a.remaining === 0 && b.remaining !== 0) return -1;
+        if (a.remaining !== 0 && b.remaining === 0) return 1;
+        return 0;
+    });
+
+    // Check if purchase is paid off
+    const isPaidOff = (purchase: CalculatedPurchase) => purchase.remaining === 0;
 </script>
 {#if !loading}
     <div class="w-full">
         <Heading tag="h5" class="font-normal mb-5">My Purchases <Button on:click={() => addPurchase()} class="inline-block ml-2 p-2"><PlusOutline /></Button></Heading>
         <ul>
-            {#each $calculation.purchases as purchase}
-                <li class="p-3 border-b border-l border-r first:border-t first:rounded-t-lg last:rounded-b-lg border-slate-300 sm:flex md:justify-between">
+            {#each sortedPurchases as purchase}
+                <li class="p-3 border-b border-l border-r first:border-t first:rounded-t-lg last:rounded-b-lg border-slate-300 sm:flex md:justify-between {isPaidOff(purchase) ? 'bg-green-50 dark:bg-green-900/20' : ''}">
                     <div>
                         <div on:click={() => editPurchase(purchase)} aria-label="Edit" class="cursor-pointer">
-                            <Heading tag="h6">
-                                {purchase.name} <EditOutline class="inline-block" />
+                            <Heading tag="h6" class="flex items-center gap-2">
+                                {purchase.name} 
+                                {#if isPaidOff(purchase)}
+                                    <CheckCircleOutline class="text-green-600 dark:text-green-400" />
+                                    <span class="text-green-600 dark:text-green-400 text-xs">Paid off</span>
+                                {:else}
+                                    <EditOutline class="inline-block" />
+                                {/if}
                             </Heading>
                         </div>
                         <div class="mt-3">Total: <span class="font-bold"><Currency value={purchase.total} /></span></div>
-                        <div class="mt-1">Remaining: <span class="font-bold"><Currency value={purchase.remaining} /></span> <Button on:click={() => editPurchaseRemaining(purchase)} class="inline-block ml-2 p-1" color="alternative"><DotsHorizontalOutline /></Button></div>
+                        <div class="mt-1">
+                            Remaining: <Currency value={purchase.remaining} />
+                            {#if !isPaidOff(purchase)}
+                                <Button on:click={() => editPurchaseRemaining(purchase)} class="inline-block ml-2 p-1" color="alternative"><DotsHorizontalOutline /></Button>
+                            {/if}
+                        </div>
                         <div class="mt-4"><CalendarMonthOutline class="inline-block" /> {new Date(purchase.expiryDate).toLocaleDateString()}</div>
                     </div>
-                    <div class="sm:ml-auto w-44 sm:mt-10 mt-4">
-                        Payments: {purchase.paymentsDone} out of {purchase.paymentsTotal}
-                        <Progressbar progress={Math.floor(purchase.paymentsDone/purchase.paymentsTotal*100)} class="w-32 mt-2" />
-                    </div>
+                        <div class="sm:ml-auto w-44 sm:mt-10 mt-4">
+                            {#if isPaidOff(purchase)}
+                                <div class="text-right pr-10">
+                                <Button
+                                        on:click={() => deletePaidOffPurchase(purchase)}
+                                        disabled={deleting === purchase.id}
+                                        color="red"
+                                        size="md"
+                                >
+                                    {#if deleting === purchase.id}
+                                        <Spinner class="w-3 h-3" />
+                                    {:else}
+                                        Delete
+                                    {/if}
+                                </Button>
+                                </div>
+                            {:else}
+                                Payments: {purchase.paymentsDone} out of {purchase.paymentsTotal}
+                                <Progressbar progress={Math.floor(purchase.paymentsDone/purchase.paymentsTotal*100)} class="w-32 mt-2" />
+                            {/if}
+                        </div>
                 </li>
             {/each}
         </ul>
@@ -78,11 +127,24 @@
                     <TableHeadCell>Payments Left</TableHeadCell>
                 </TableHead>
                 <TableBody tableBodyClass="divide-y">
-                    {#each $calculation.purchases as purchase}
-                    <TableBodyRow>
-                        <TableBodyCell>{purchase.name}</TableBodyCell>
-                        <TableBodyCell><Currency value={purchase.nextPayment} /></TableBodyCell>
-                        <TableBodyCell>{purchase.paymentsTotal-purchase.paymentsDone}</TableBodyCell>
+                    {#each sortedPurchases as purchase}
+                    <TableBodyRow class="{isPaidOff(purchase) ? 'bg-green-50 dark:bg-green-900/20' : ''}">
+                        <TableBodyCell class="{isPaidOff(purchase) ? 'bg-green-200 dark:bg-green-800 flex items-center gap-2' : 'flex items-center gap-2'}">
+                            {purchase.name}
+                            {#if isPaidOff(purchase)}
+                                <CheckCircleOutline class="w-4 h-4 text-green-600 dark:text-green-400" />
+                            {/if}
+                        </TableBodyCell>
+                        <TableBodyCell class="{isPaidOff(purchase) ? 'bg-green-200 dark:bg-green-800' : ''}">
+                            {#if !isPaidOff(purchase)}
+                                <Currency value={purchase.nextPayment} />
+                            {/if}
+                        </TableBodyCell>
+                        <TableBodyCell class="{isPaidOff(purchase) ? 'bg-green-200 dark:bg-green-800' : ''}">
+                            {#if !isPaidOff(purchase)}
+                                {purchase.paymentsTotal-purchase.paymentsDone}
+                            {/if}
+                        </TableBodyCell>
                     </TableBodyRow>
                     {/each}
                 </TableBody>

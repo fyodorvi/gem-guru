@@ -217,9 +217,15 @@
                                 {#each parseResult.interimResult.updatedPurchases as purchase}
                                 <TableBodyRow>
                                     <TableBodyCell>{purchase.name}</TableBodyCell>
-                                    <TableBodyCell><Currency value={purchase.oldRemaining} /></TableBodyCell>
-                                    <TableBodyCell class="text-center"><ArrowRightOutline class="w-4 h-4 text-gray-400" /></TableBodyCell>
-                                    <TableBodyCell><Currency value={purchase.newRemaining} /></TableBodyCell>
+                                    {#if purchase.oldRemaining === purchase.newRemaining}
+                                        <TableBodyCell colspan="3" class="text-center text-gray-500 italic">
+                                            No change (<Currency value={purchase.oldRemaining} />)
+                                        </TableBodyCell>
+                                    {:else}
+                                        <TableBodyCell><Currency value={purchase.oldRemaining} /></TableBodyCell>
+                                        <TableBodyCell class="text-center"><ArrowRightOutline class="w-4 h-4 text-gray-400" /></TableBodyCell>
+                                        <TableBodyCell><Currency value={purchase.newRemaining} /></TableBodyCell>
+                                    {/if}
                                 </TableBodyRow>
                                 {/each}
                             </TableBody>
