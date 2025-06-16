@@ -17,7 +17,8 @@
     "compile": "tsc",
     "test": "npm run compile && npm run unit",
     "clean": "rm -rf dist",
-    "prebuild": "npm run clean"
+    "prebuild": "npm run clean",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.556.0",
@@ -35,6 +36,7 @@
     "express-oauth2-jwt-bearer": "^1.6.0",
     "lodash": "^4.17.21",
     "luxon": "^3.4.4",
+    "patch-package": "^8.0.0",
     "pdf-parse": "^1.1.1",
     "serverless-http": "^3.2.0"
   },
