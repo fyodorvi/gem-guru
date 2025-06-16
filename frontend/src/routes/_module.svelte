@@ -5,7 +5,7 @@
     import { Button } from 'flowbite-svelte';
     import logo from '../assets/logo.png';
     import { Spinner } from 'flowbite-svelte';
-    import { Navbar, NavBrand, NavLi, NavUl, NavHamburger, Avatar, Dropdown, DropdownItem, DropdownHeader, DropdownDivider } from 'flowbite-svelte';
+    import { Navbar, NavBrand, NavLi, NavUl, NavHamburger, Avatar, Dropdown, DropdownItem, DropdownHeader } from 'flowbite-svelte';
 
     let { isLoading, isAuthenticated, login, signup, logout, initializeAuth0, user } = useAuth0;
 
@@ -25,8 +25,17 @@
 
     onMount(async () => {
         await initializeAuth0({ onRedirectCallback });
+        
+        // Navigate to calculator by default if authenticated and on root
+        if ($isAuthenticated && (window.location.pathname === '/' || window.location.pathname === '')) {
+            window.location.href = '/calculator';
+        }
     });
 
+    // Watch for authentication changes to redirect to calculator
+    $: if ($isAuthenticated && (window.location.pathname === '/' || window.location.pathname === '')) {
+        window.location.href = '/calculator';
+    }
 </script>
 
 {#if $isLoading}
@@ -37,8 +46,9 @@
     </div>
 {:else}
     {#if $isAuthenticated}
+        <div class="w-full max-w-[900px] mx-auto">
         <Navbar>
-            <NavBrand href="/">
+            <NavBrand href="/calculator">
                 <!--<img src="/images/flowbite-svelte-icon-logo.svg" class="me-3 h-6 sm:h-9" alt="Flowbite Logo" />-->
                 <span class="self-center whitespace-nowrap text-xl font-semibold dark:text-white font-serif">Gem Guru</span>
             </NavBrand>
@@ -56,11 +66,16 @@
             <NavUl>
                 <NavLi href="/calculator" active={true}>Calculator</NavLi>
                 <NavLi href="/projection">Projection</NavLi>
+                <NavLi href="/statement">Statement</NavLi>
             </NavUl>
         </Navbar>
-        <div class="p-5">
-            <slot />
         </div>
+            <div class="p-5">
+                <div class="w-full max-w-[900px] mx-auto">
+                <slot />
+                </div>
+            </div>
+
     {:else}
     <div class="flex h-screen">
         <div class="m-auto text-center">

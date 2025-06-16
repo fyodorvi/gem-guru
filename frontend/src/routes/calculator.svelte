@@ -46,7 +46,7 @@
     }
 </script>
 {#if !loading}
-    <div class="lg:max-w-[50%] sm:max-w-[75%]">
+    <div class="w-full">
         <Heading tag="h5" class="font-normal mb-5">My Purchases <Button on:click={() => addPurchase()} class="inline-block ml-2 p-2"><PlusOutline /></Button></Heading>
         <ul>
             {#each $calculation.purchases as purchase}
@@ -70,22 +70,24 @@
         </ul>
         <Heading tag="h5" class="font-normal mb-5 mt-10">Payment Breakdown</Heading>
         <p class="mb-5">Calculation breaks down each purchase into equal parts. </p>
-        <Table striped={true} class="border mb-5">
-            <TableHead class="border-b">
-                <TableHeadCell>Name</TableHeadCell>
-                <TableHeadCell>Payment</TableHeadCell>
-                <TableHeadCell>Payments Left</TableHeadCell>
-            </TableHead>
-            <TableBody tableBodyClass="divide-y">
-                {#each $calculation.purchases as purchase}
-                <TableBodyRow>
-                    <TableBodyCell>{purchase.name}</TableBodyCell>
-                    <TableBodyCell><Currency value={purchase.nextPayment} /></TableBodyCell>
-                    <TableBodyCell>{purchase.paymentsTotal-purchase.paymentsDone}</TableBodyCell>
-                </TableBodyRow>
-                {/each}
-            </TableBody>
-        </Table>
+        <div class="w-full overflow-x-auto">
+            <Table striped={true} class="border mb-5 w-full">
+                <TableHead class="border-b">
+                    <TableHeadCell>Name</TableHeadCell>
+                    <TableHeadCell>Payment</TableHeadCell>
+                    <TableHeadCell>Payments Left</TableHeadCell>
+                </TableHead>
+                <TableBody tableBodyClass="divide-y">
+                    {#each $calculation.purchases as purchase}
+                    <TableBodyRow>
+                        <TableBodyCell>{purchase.name}</TableBodyCell>
+                        <TableBodyCell><Currency value={purchase.nextPayment} /></TableBodyCell>
+                        <TableBodyCell>{purchase.paymentsTotal-purchase.paymentsDone}</TableBodyCell>
+                    </TableBodyRow>
+                    {/each}
+                </TableBody>
+            </Table>
+        </div>
         <div class="text-xl mb-4">Total remaining: <span class="font-bold"><Currency value={$calculation.totalRemaining} /></span></div>
         <div class="text-xl">Amount to pay on <span class="font-bold"><FormattedDate value={$calculation.nextPaymentDate}/></span>: <span class="font-bold bg-primary-300 p-2 rounded-xl dark:text-black"><Currency value={$calculation.totalNextPayment} /></span></div>
     </div>

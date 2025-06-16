@@ -46,6 +46,50 @@ export interface ProfileSettings {
     paymentDay: number;
 }
 
+export interface ParsedPurchase {
+    name: string;
+    total: number;
+    remaining: number;
+    startDate: string;
+    expiryDate: string;
+    minimumPayment?: number;
+    interestFreeMonths?: number;
+    paymentType?: 'fixed' | 'monthly' | 'none';
+}
+
+export interface NewPurchase extends ParsedPurchase {
+    // All details are included from ParsedPurchase
+}
+
+export interface UpdatedPurchase {
+    id: string;
+    name: string;
+    oldRemaining: number;
+    newRemaining: number;
+}
+
+export interface PaidOffPurchase {
+    id: string;
+    name: string;
+    total: number;
+    remaining: number;
+}
+
+export interface InterimResult {
+    newPurchases: NewPurchase[];
+    updatedPurchases: UpdatedPurchase[];
+    paidOffPurchases: PaidOffPurchase[];
+}
+
+export interface StatementParseResult {
+    success: boolean;
+    error?: string;
+    parsedPurchases: ParsedPurchase[];
+    extractedSections: string[];
+    calculation?: Calculation;
+    interimResult?: InterimResult;
+}
+
 async function getHeaders() {
     const { getAccessToken } = useAuth0;
     const token = await getAccessToken({ authorizationParams: { audience: import.meta.env.VITE_API_URL }});
@@ -94,4 +138,38 @@ export async function setProfile(profileSettings: ProfileSettings): Promise<void
 
 export async function getProfile(): Promise<ProfileSettings> {
     return apiGET('/profile');
+}
+
+export async function parseStatement(file: File, preview: boolean = true): Promise<StatementParseResult> {
+    // Convert file to base64
+    const base64 = await fileToBase64(file);
+    
+    const payload = {
+        fileName: file.name,
+        fileSize: file.size,
+        mimeType: file.type,
+        fileData: base64
+    };
+    
+    const url = preview ? '/statement/parse?preview=true' : '/statement/parse';
+    return apiPOST(url, payload);
+}
+
+export async function confirmStatementChanges(file: File): Promise<StatementParseResult> {
+    return parseStatement(file, false);
+}
+
+// Helper function to convert File to base64
+function fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+            const result = reader.result as string;
+            // Remove the data URL prefix (e.g., "data:application/pdf;base64,")
+            const base64 = result.split(',')[1];
+            resolve(base64);
+        };
+        reader.onerror = error => reject(error);
+    });
 }

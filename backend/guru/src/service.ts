@@ -6,6 +6,9 @@ import * as _ from 'lodash';
 import {DateTime} from "luxon";
 import {ProfileSettings} from "./models/profileSettings";
 import {Projection} from "./models/projection";
+import {UserData} from "./models/userData";
+import {parseStatement} from "./statementParser";
+import {StatementParseResult, ParsedPurchase, UpsertSummary, InterimResult, NewPurchase, UpdatedPurchase, PaidOffPurchase} from "./models/statementParseResult";
 
 const _getNextPaymentDate = (paymentDay: number): DateTime => {
     if (DateTime.now().day > paymentDay) {
@@ -160,3 +163,289 @@ export const getProfile = async(userId: string): Promise<ProfileSettings> => {
 export const setProfile = async(userId: string, profileSettings: ProfileSettings): Promise<void> => {
     return await setProfileSettings(userId, profileSettings);
 }
+
+export const parseStatementPreview = async (userId: string, pdfBuffer: Buffer): Promise<StatementParseResult> => {
+    const parseResult = await parseStatement(pdfBuffer);
+    
+    if (!parseResult.success) {
+        return parseResult;
+    }
+    
+    try {
+        // Get existing purchases
+        const existingPurchases = await getPurchases(userId);
+        
+        // Convert parsed purchases to Purchase objects
+        const newParsedPurchases: Purchase[] = parseResult.parsedPurchases.map((parsed: ParsedPurchase) => {
+            let minimumPayment: number | undefined = parsed.minimumPayment;
+            let hasMinimumPayment = false;
+            
+            // Calculate minimum payment for monthly payment types
+            if (parsed.paymentType === 'monthly' && parsed.interestFreeMonths && parsed.interestFreeMonths > 0) {
+                minimumPayment = Math.ceil(parsed.total / parsed.interestFreeMonths);
+                hasMinimumPayment = true;
+            } else if (parsed.paymentType === 'fixed' && parsed.minimumPayment) {
+                minimumPayment = Math.round(parsed.minimumPayment * 100);
+                hasMinimumPayment = true;
+            }
+            
+                         return {
+                 id: randomUUID(), // Temporary ID for preview
+                 name: parsed.name,
+                 total: parsed.total,
+                 remaining: parsed.remaining,
+                 startDate: parsed.startDate,
+                 expiryDate: parsed.expiryDate,
+                 hasMinimumPayment,
+                 minimumPayment: hasMinimumPayment ? minimumPayment : undefined
+             };
+        });
+
+        // Generate interim result without applying changes
+        const interimResult = generateInterimResult(existingPurchases, newParsedPurchases);
+        
+        const result = {
+            ...parseResult,
+            interimResult
+        };
+        
+        return result;
+        
+    } catch (error) {
+        return {
+            success: false,
+            error: `Failed to preview parsed purchases: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            parsedPurchases: parseResult.parsedPurchases,
+            extractedSections: parseResult.extractedSections
+        };
+    }
+};
+
+function generateInterimResult(existingPurchases: Purchase[], newParsedPurchases: Purchase[]): InterimResult {
+    const newPurchases: NewPurchase[] = [];
+    const updatedPurchases: UpdatedPurchase[] = [];
+    const paidOffPurchases: PaidOffPurchase[] = [];
+    
+    // Track which existing purchases were matched
+    const matchedExistingIds = new Set<string>();
+    
+    // Process new purchases and find matches
+    for (const newPurchase of newParsedPurchases) {
+        const existingMatch = findMatchingPurchase(existingPurchases, newPurchase);
+        
+        if (existingMatch && existingMatch.id) {
+            // This is an update
+            matchedExistingIds.add(existingMatch.id);
+            updatedPurchases.push({
+                id: existingMatch.id,
+                name: existingMatch.name,
+                oldRemaining: existingMatch.remaining,
+                newRemaining: newPurchase.remaining
+            });
+        } else {
+            // This is a new purchase
+            // Calculate payment type for display
+            let paymentType: 'fixed' | 'monthly' | 'none' = 'none';
+            let interestFreeMonths: number | undefined;
+            
+            if (newPurchase.hasMinimumPayment && newPurchase.minimumPayment) {
+                // Check if it's a monthly payment (roughly equal to total/months)
+                const estimatedMonths = Math.ceil(newPurchase.total / newPurchase.minimumPayment);
+                if (estimatedMonths >= 6 && estimatedMonths <= 48) {
+                    paymentType = 'monthly';
+                    interestFreeMonths = estimatedMonths;
+                } else {
+                    paymentType = 'fixed';
+                }
+            }
+            
+            newPurchases.push({
+                name: newPurchase.name,
+                total: newPurchase.total,
+                remaining: newPurchase.remaining,
+                startDate: newPurchase.startDate,
+                expiryDate: newPurchase.expiryDate,
+                minimumPayment: newPurchase.minimumPayment,
+                interestFreeMonths,
+                paymentType
+            });
+        }
+    }
+    
+    // Find unmatched existing purchases (paid off)
+    for (const existingPurchase of existingPurchases) {
+        if (existingPurchase.id && !matchedExistingIds.has(existingPurchase.id)) {
+            paidOffPurchases.push({
+                id: existingPurchase.id,
+                name: existingPurchase.name,
+                total: existingPurchase.total,
+                remaining: existingPurchase.remaining
+            });
+        }
+    }
+    
+    return {
+        newPurchases,
+        updatedPurchases,
+        paidOffPurchases
+    };
+}
+
+export const parseAndUpsertStatementPurchases = async (userId: string, pdfBuffer: Buffer): Promise<StatementParseResult & { calculation?: Calculation }> => {
+    const parseResult = await parseStatement(pdfBuffer);
+    
+    if (!parseResult.success) {
+        return parseResult;
+    }
+    
+    try {
+        // Get existing purchases
+        const existingPurchases = await getPurchases(userId);
+        
+        // Convert parsed purchases to Purchase objects
+        const newParsedPurchases: Purchase[] = parseResult.parsedPurchases.map((parsed: ParsedPurchase, index: number) => {
+            let minimumPayment: number | undefined = parsed.minimumPayment;
+            let hasMinimumPayment = false;
+            
+            // Calculate minimum payment for monthly payment types
+            if (parsed.paymentType === 'monthly' && parsed.interestFreeMonths && parsed.interestFreeMonths > 0) {
+                // Convert to cents: total (already in cents) / months, rounded up
+                minimumPayment = Math.ceil(parsed.total / parsed.interestFreeMonths);
+                hasMinimumPayment = true;
+                console.log(`💳 Calculated monthly payment for ${parsed.name}: ${minimumPayment} cents ($${(minimumPayment/100).toFixed(2)}) over ${parsed.interestFreeMonths} months`);
+            } else if (parsed.paymentType === 'fixed' && parsed.minimumPayment) {
+                // Convert fixed payment from dollars to cents
+                minimumPayment = Math.round(parsed.minimumPayment * 100);
+                hasMinimumPayment = true;
+                console.log(`💳 Fixed payment for ${parsed.name}: ${minimumPayment} cents ($${(minimumPayment/100).toFixed(2)})`);
+            }
+            
+            return {
+                id: randomUUID(), // Will be overwritten if it's an update
+                name: parsed.name,
+                total: parsed.total,
+                remaining: parsed.remaining,
+                startDate: parsed.startDate,
+                expiryDate: parsed.expiryDate,
+                hasMinimumPayment,
+                minimumPayment: hasMinimumPayment ? minimumPayment : undefined
+            };
+        });
+
+        // Perform UPSERT logic
+        const upsertResult = performUpsert(existingPurchases, newParsedPurchases);
+        
+        // Save the updated purchases
+        await savePurchases(userId, upsertResult.finalPurchases);
+        
+        // Calculate new totals
+        const calculation = await calculate(userId, upsertResult.finalPurchases);
+        
+        return {
+            ...parseResult,
+            calculation,
+            upsertSummary: upsertResult.summary
+        };
+        
+    } catch (error) {
+        return {
+            success: false,
+            error: `Failed to upsert parsed purchases: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            parsedPurchases: parseResult.parsedPurchases,
+            extractedSections: parseResult.extractedSections
+        };
+    }
+};
+
+function performUpsert(existingPurchases: Purchase[], newParsedPurchases: Purchase[]): {
+    finalPurchases: Purchase[];
+    summary: UpsertSummary;
+} {
+    const summary: UpsertSummary = {
+        added: 0,
+        updated: 0,
+        potentiallyPaidOff: 0,
+        addedPurchases: [],
+        updatedPurchases: [],
+        potentiallyPaidOffPurchases: []
+    };
+    
+    const finalPurchases: Purchase[] = [];
+    const matchedExistingIds = new Set<string>();
+    
+    console.log(`🔄 Performing UPSERT: ${existingPurchases.length} existing, ${newParsedPurchases.length} new`);
+    
+    // Process new purchases - either update existing or add new
+    for (const newPurchase of newParsedPurchases) {
+        const match = findMatchingPurchase(existingPurchases, newPurchase);
+        
+        if (match) {
+            // Update existing purchase - only update remaining amount
+            const updatedPurchase = {
+                ...match,
+                remaining: newPurchase.remaining
+            };
+            finalPurchases.push(updatedPurchase);
+            if (match.id) {
+                matchedExistingIds.add(match.id);
+            }
+            summary.updated++;
+            summary.updatedPurchases.push(match.name);
+            console.log(`📝 Updated: ${match.name} - remaining: $${(newPurchase.remaining/100).toFixed(2)}`);
+        } else {
+            // Add new purchase
+            finalPurchases.push(newPurchase);
+            summary.added++;
+            summary.addedPurchases.push(newPurchase.name);
+            console.log(`➕ Added: ${newPurchase.name} - total: $${(newPurchase.total/100).toFixed(2)}`);
+        }
+    }
+    
+    // Handle existing purchases that weren't matched (potentially paid off)
+    for (const existingPurchase of existingPurchases) {
+        if (existingPurchase.id && !matchedExistingIds.has(existingPurchase.id)) {
+            // Mark as potentially paid off (remaining = 0) but keep in the list
+            const paidOffPurchase = {
+                ...existingPurchase,
+                remaining: 0
+            };
+            finalPurchases.push(paidOffPurchase);
+            summary.potentiallyPaidOff++;
+            summary.potentiallyPaidOffPurchases.push({
+                id: existingPurchase.id,
+                name: existingPurchase.name,
+                total: existingPurchase.total
+            });
+            console.log(`💰 Potentially paid off: ${existingPurchase.name} - was $${(existingPurchase.remaining/100).toFixed(2)}`);
+        }
+    }
+    
+    console.log(`✅ UPSERT complete: ${summary.added} added, ${summary.updated} updated, ${summary.potentiallyPaidOff} potentially paid off`);
+    
+    return { finalPurchases, summary };
+}
+
+function findMatchingPurchase(existingPurchases: Purchase[], newPurchase: Purchase): Purchase | null {
+    // Match by total amount, start date, and expiry date
+    return existingPurchases.find(existing => 
+        existing.total === newPurchase.total &&
+        existing.startDate === newPurchase.startDate &&
+        existing.expiryDate === newPurchase.expiryDate
+    ) || null;
+}
+
+export const removePaidOffPurchases = async(userId: string, purchaseIds: string[]): Promise<Calculation> => {
+    const purchases = await getPurchases(userId);
+    
+    // Remove purchases with the specified IDs
+    const filteredPurchases = purchases.filter(purchase => !purchaseIds.includes(purchase.id!));
+    
+    console.log(`🗑️ Removing ${purchaseIds.length} paid-off purchases for user ${userId}`);
+    console.log(`📊 Purchases before: ${purchases.length}, after: ${filteredPurchases.length}`);
+    
+    await savePurchases(userId, filteredPurchases);
+    return calculate(userId, filteredPurchases);
+};
+
+// Keep the old function for backward compatibility, but mark as deprecated
+export const parseAndReplaceStatementPurchases = parseAndUpsertStatementPurchases;

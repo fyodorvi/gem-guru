@@ -70,6 +70,11 @@
 
     const purchaseForm = form(name, total, remaining, startDate, expiryDate, hasMinimumPayment, minimumPayment);
 
+    // Auto-set remaining to total for new purchases when total changes
+    $: if (!purchase && $total.value > 0) {
+        remaining.set($total.value);
+    }
+
     let submitting = false;
     let deleting = false;
 

@@ -10,7 +10,7 @@ const local = process.env.LOCAL === 'true';
 let endpoint: string | undefined;
 
 if (local) {
-    endpoint = 'http://host.docker.internal:4566';
+    endpoint = 'http://127.0.0.1:4566';
 }
 
 const _getClient = (): DynamoDBDocumentClient => {

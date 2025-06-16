@@ -135,7 +135,8 @@ Resources:
       CodeUri: guru/
       Handler: app.lambdaHandler
       Runtime: nodejs20.x
-      MemorySize: 512
+      MemorySize: 1024
+      Timeout: 30
       Policies: AmazonDynamoDBFullAccess
       Architectures:
       - x86_64
@@ -186,6 +187,12 @@ Resources:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /profile
+            RestApiId: !Ref RestApiGateway # Add the RestApiId property
+            Method: post
+        ParseStatement:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /statement/parse
             RestApiId: !Ref RestApiGateway # Add the RestApiId property
             Method: post
     Metadata: # Manage esbuild properties

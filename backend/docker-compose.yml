@@ -13,3 +13,14 @@ services:
     volumes:
       - "${LOCALSTACK_VOLUME_DIR:-./volume}:/var/lib/localstack"
       - "/var/run/docker.sock:/var/run/docker.sock"
+
+  dynamodb-admin:
+    container_name: dynamodb-admin
+    image: aaronshaf/dynamodb-admin
+    ports:
+      - "8001:8001"
+    environment:
+      # This points DynamoDB Admin to your LocalStack DynamoDB service
+      DYNAMO_ENDPOINT: http://localstack:4566
+    depends_on:
+      - localstack
