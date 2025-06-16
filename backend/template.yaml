@@ -204,7 +204,7 @@ Resources:
         EntryPoints:
         - app.ts
         ExternalDependencies:
-        - pdf-parse
+          - "pdf-parse"
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
