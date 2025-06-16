@@ -103,7 +103,7 @@
             Upload your Gem Visa statement PDF to automatically extract and manage your promotional purchases.
         </p>
 
-        <Card class="mb-6 w-full">
+        <Card class="mb-6 w-full" style="max-width: none;">
             <div class="space-y-4">
                 <Fileupload 
                     on:change={handleFileSelect}
@@ -168,13 +168,13 @@
 
             <!-- New Purchases -->
             {#if parseResult.interimResult.newPurchases.length > 0}
-                <Card class="mb-6 w-full">
+                <Card class="mb-6 w-full" style="max-width: none;">
                     <div class="flex items-center gap-2 mb-4">
                         <Heading tag="h6">New Purchases</Heading>
                         <Badge color="green">{parseResult.interimResult.newPurchases.length}</Badge>
                     </div>
-                    <div class="w-full overflow-x-auto">
-                        <Table striped={true} class="border w-full">
+                    <div class="w-full overflow-x-auto" style="max-width: none;">
+                        <Table striped={true} class="border w-full" style="max-width: none;">
                             <TableHead class="border-b">
                                 <TableHeadCell>Name</TableHeadCell>
                                 <TableHeadCell>Total Amount</TableHeadCell>
@@ -200,13 +200,13 @@
 
             <!-- Updated Purchases -->
             {#if parseResult.interimResult.updatedPurchases.length > 0}
-                <Card class="mb-6 w-full">
+                <Card class="mb-6 w-full" style="max-width: none;">
                     <div class="flex items-center gap-2 mb-4">
                         <Heading tag="h6">Updated Purchases</Heading>
                         <Badge color="yellow">{parseResult.interimResult.updatedPurchases.length}</Badge>
                     </div>
-                    <div class="w-full overflow-x-auto">
-                        <Table striped={true} class="border w-full">
+                    <div class="w-full overflow-x-auto" style="max-width: none;">
+                        <Table striped={true} class="border w-full" style="max-width: none;">
                             <TableHead class="border-b">
                                 <TableHeadCell>Name</TableHeadCell>
                                 <TableHeadCell>Old Remaining</TableHeadCell>
@@ -230,7 +230,7 @@
 
             <!-- Paid Off Purchases -->
             {#if parseResult.interimResult.paidOffPurchases.length > 0}
-                <Card class="mb-6 w-full">
+                <Card class="mb-6 w-full" style="max-width: none;">
                     <div class="flex items-center gap-2 mb-4">
                         <Heading tag="h6">Paid Off Purchases</Heading>
                         <Badge color="red">{parseResult.interimResult.paidOffPurchases.length}</Badge>
@@ -238,8 +238,8 @@
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
                         These purchases were not found in the new statement and appear to be paid off.
                     </p>
-                    <div class="w-full overflow-x-auto">
-                        <Table striped={true} class="border w-full">
+                    <div class="w-full overflow-x-auto" style="max-width: none;">
+                        <Table striped={true} class="border w-full" style="max-width: none;">
                             <TableHead class="border-b">
                                 <TableHeadCell>Name</TableHeadCell>
                                 <TableHeadCell>Total Amount</TableHeadCell>
@@ -260,7 +260,7 @@
             {/if}
 
             <!-- Confirmation Button -->
-            <Card class="w-full">
+            <Card class="w-full" style="max-width: none;">
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
                         <Heading tag="h6" class="mb-2">Ready to Apply Changes?</Heading>

@@ -70,12 +70,9 @@
             </NavUl>
         </Navbar>
         </div>
-            <div class="p-5">
-                <div class="w-full max-w-[900px] mx-auto">
-                <slot />
-                </div>
-            </div>
-
+        <div class="p-5 max-w-[900px] mx-auto w-full">
+            <slot />
+        </div>
     {:else}
     <div class="flex h-screen">
         <div class="m-auto text-center">
