@@ -1,16 +1,17 @@
 <script lang="ts">
-    import {Chart, Heading, Spinner} from "flowbite-svelte";
+    import {Chart, Heading, Spinner, Table, TableHead, TableHeadCell, TableBody, TableBodyRow, TableBodyCell} from "flowbite-svelte";
     import {onMount} from "svelte";
     import {getProfile, loadProjection} from "../services/api";
     import type {ApexOptions} from "apexcharts";
     import {toCurrencyDisplay} from "../services/format";
 
     let loading = true;
+    let projection: any;
 
     let options: ApexOptions;
 
     onMount(async () => {
-        const projection = await loadProjection();
+        projection = await loadProjection();
 
         options = {
             chart: {
@@ -26,6 +27,7 @@
             },
             tooltip: {
                 enabled: true,
+                theme: 'dark',
                 x: {
                     show: false
                 }
@@ -46,7 +48,7 @@
                 padding: {
                     left: 2,
                     right: 2,
-                    top: -26
+                    top: 10
                 }
             },
             series: [
@@ -79,6 +81,10 @@
                 labels: {
                     formatter: (value) => {
                         return toCurrencyDisplay(value);
+                    },
+                    style: {
+                        fontFamily: 'Inter, sans-serif',
+                        cssClass: 'text-xs font-normal fill-gray-500 dark:fill-gray-400'
                     }
                 },
                 show: true
@@ -93,6 +99,26 @@
 
 {#if !loading}
     <Chart {options} />
+    
+    <div class="mt-8">
+        <Heading tag="h6" class="font-normal mb-4">Monthly Breakdown</Heading>
+        <div class="w-full overflow-x-auto">
+            <Table striped={true} class="border">
+                <TableHead class="border-b">
+                    <TableHeadCell>Month</TableHeadCell>
+                    <TableHeadCell>Payment</TableHeadCell>
+                </TableHead>
+                <TableBody tableBodyClass="divide-y">
+                    {#each projection.months as month}
+                    <TableBodyRow>
+                        <TableBodyCell>{month.date}</TableBodyCell>
+                        <TableBodyCell>{toCurrencyDisplay(month.amountToPay)}</TableBodyCell>
+                    </TableBodyRow>
+                    {/each}
+                </TableBody>
+            </Table>
+        </div>
+    </div>
 {:else}
     <Spinner />
 {/if}

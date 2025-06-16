@@ -100,7 +100,7 @@
     {#if !parseResult && !error}
         <!-- Initial upload section - only show when no results -->
         <p class="mb-5 text-gray-600 dark:text-gray-400">
-            Upload your Gem Visa statement PDF to automatically extract and manage your promotional purchases.
+            Gem Guru does not store or keep your statements.
         </p>
 
         <Card class="mb-6 w-full" style="max-width: none;">
