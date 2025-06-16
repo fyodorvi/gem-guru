@@ -31,11 +31,12 @@
 
 {#if !loading}
 <form on:submit|preventDefault={onSubmit}>
+    <div class="pb-2">
     <ValidatedNumberInput title="Payment Day of the Month"
                     formStore={profileForm}
                     bind:value={$paymentDay.value}
                     validationMessages={{'name.required': 'Name is required'}} />
-
+    </div>
     <Button on:click={() => onSubmit()} type="submit" disabled={submitting}>{#if submitting}<Spinner class="me-3" size="4" color="white" />{/if} Save</Button>
 </form>
 {:else}

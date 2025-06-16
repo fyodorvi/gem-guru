@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { beforeUrlChange, isActive } from '@roxi/routify'
+    import { beforeUrlChange, isActive, goto } from '@roxi/routify'
     import {useAuth0} from "../services/auth0";
     import {onMount} from 'svelte';
     import { Button } from 'flowbite-svelte';
@@ -8,6 +8,12 @@
     import { Navbar, NavBrand, NavLi, NavUl, NavHamburger, Avatar, Dropdown, DropdownItem, DropdownHeader } from 'flowbite-svelte';
 
     let { isLoading, isAuthenticated, login, signup, logout, initializeAuth0, user } = useAuth0;
+
+    // Add dropdown state management
+    let dropdownOpen = false;
+    
+    // Mobile menu state - let Flowbite handle the show/hide, we just track when to close it
+    let shouldCloseMenu = false;
 
     $beforeUrlChange(() => {
         return $isAuthenticated;
@@ -28,14 +34,37 @@
         
         // Navigate to calculator by default if authenticated and on root
         if ($isAuthenticated && (window.location.pathname === '/' || window.location.pathname === '')) {
-            window.location.href = '/calculator';
+            $goto('/calculator');
         }
     });
 
     // Watch for authentication changes to redirect to calculator
     $: if ($isAuthenticated && (window.location.pathname === '/' || window.location.pathname === '')) {
-        window.location.href = '/calculator';
+        $goto('/calculator');
     }
+
+    // Function to handle dropdown item clicks
+    const handleDropdownItemClick = (callback?: () => void) => {
+        dropdownOpen = false;
+        if (callback) {
+            callback();
+        }
+    };
+
+    // Function to handle profile navigation
+    const handleProfileClick = () => {
+        $goto('/profile');
+    };
+
+    // Function to handle mobile menu navigation
+    const handleMobileNavClick = (toggleFn: () => void, href: string) => {
+        // Only close the menu on mobile screens (below md breakpoint - 768px)
+        if (window.innerWidth < 768) {
+            toggleFn();
+        }
+        // Then navigate
+        $goto(href);
+    };
 </script>
 
 {#if $isLoading}
@@ -47,26 +76,26 @@
 {:else}
     {#if $isAuthenticated}
         <div class="w-full max-w-[900px] mx-auto">
-        <Navbar>
+        <Navbar let:toggle>
             <NavBrand href="/calculator">
                 <!--<img src="/images/flowbite-svelte-icon-logo.svg" class="me-3 h-6 sm:h-9" alt="Flowbite Logo" />-->
                 <span class="self-center whitespace-nowrap text-xl font-semibold dark:text-white font-serif">Gem Guru</span>
             </NavBrand>
             <div class="flex items-center md:order-2">
-                <Avatar id="avatar-menu" class="cursor-pointer" />
+                <Avatar id="avatar-menu" class="cursor-pointer" on:click={() => dropdownOpen = !dropdownOpen} />
                 <NavHamburger class1="w-full md:flex md:w-auto md:order-1" />
             </div>
-            <Dropdown placement="bottom" triggeredBy="#avatar-menu">
+            <Dropdown placement="bottom" triggeredBy="#avatar-menu" bind:open={dropdownOpen}>
                 <DropdownHeader>
                     <span class="block truncate text-sm font-medium">{$user.email}</span>
                 </DropdownHeader>
-                <DropdownItem href="/profile">Profile</DropdownItem>
-                <DropdownItem on:click={() => logout({ logoutParams: {returnTo: window.location.origin,}})}>Sign out</DropdownItem>
+                <DropdownItem on:click={() => handleDropdownItemClick(handleProfileClick)}>Profile</DropdownItem>
+                <DropdownItem on:click={() => handleDropdownItemClick(() => logout({ logoutParams: {returnTo: window.location.origin,}}))}>Sign out</DropdownItem>
             </Dropdown>
             <NavUl>
-                <NavLi href="/calculator" active={true}>Calculator</NavLi>
-                <NavLi href="/projection">Projection</NavLi>
-                <NavLi href="/statement">Statement</NavLi>
+                <NavLi class="cursor-pointer" on:click={() => handleMobileNavClick(toggle, '/calculator')} active={true}>Calculator</NavLi>
+                <NavLi class="cursor-pointer" on:click={() => handleMobileNavClick(toggle, '/projection')}>Projection</NavLi>
+                <NavLi class="cursor-pointer" on:click={() => handleMobileNavClick(toggle, '/statement')}>Statement</NavLi>
             </NavUl>
         </Navbar>
         </div>
