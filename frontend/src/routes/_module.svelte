@@ -89,7 +89,7 @@
                 <DropdownHeader>
                     <span class="block truncate text-sm font-medium">{$user.email}</span>
                 </DropdownHeader>
-                <DropdownItem on:click={() => handleDropdownItemClick(handleProfileClick)}>Profile</DropdownItem>
+                <!-- <DropdownItem on:click={() => handleDropdownItemClick(handleProfileClick)}>Profile</DropdownItem> -->
                 <DropdownItem on:click={() => handleDropdownItemClick(() => logout({ logoutParams: {returnTo: window.location.origin,}}))}>Sign out</DropdownItem>
             </Dropdown>
             <NavUl>

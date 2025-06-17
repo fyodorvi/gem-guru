@@ -43,7 +43,7 @@ export interface Purchase {
 }
 
 export interface ProfileSettings {
-    paymentDay: number;
+    paymentDueDate: string; // ISO date string
 }
 
 export interface ParsedPurchase {
@@ -173,3 +173,4 @@ function fileToBase64(file: File): Promise<string> {
         reader.onerror = error => reject(error);
     });
 }
+

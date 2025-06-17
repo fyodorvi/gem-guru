@@ -47,16 +47,24 @@ const _loadUserData = async(userId: string): Promise<UserData> => {
             result.Items[0].purchases = []
         }
         if (!result.Items[0].profileSettings) {
+            // Set default payment due date to the first of next month
+            const nextMonth = new Date();
+            nextMonth.setMonth(nextMonth.getMonth() + 1);
+            nextMonth.setDate(1);
             result.Items[0].profileSettings = {
-                paymentDay: 1
+                paymentDueDate: nextMonth.toISOString().split('T')[0] + 'T00:00:00.000Z'
             }
         }
         return result.Items[0] as UserData;
     } else {
+        // Set default payment due date to the first of next month
+        const nextMonth = new Date();
+        nextMonth.setMonth(nextMonth.getMonth() + 1);
+        nextMonth.setDate(1);
         return {
             purchases: [],
             profileSettings: {
-                paymentDay: 1
+                paymentDueDate: nextMonth.toISOString().split('T')[0] + 'T00:00:00.000Z'
             }
         }
     }

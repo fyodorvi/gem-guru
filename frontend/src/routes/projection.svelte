@@ -1,9 +1,10 @@
 <script lang="ts">
     import {Chart, Heading, Spinner, Table, TableHead, TableHeadCell, TableBody, TableBodyRow, TableBodyCell} from "flowbite-svelte";
     import {onMount} from "svelte";
-    import {getProfile, loadProjection} from "../services/api";
+    import {loadProjection} from "../services/api";
     import type {ApexOptions} from "apexcharts";
     import {toCurrencyDisplay} from "../services/format";
+    import { calculation } from '../services/store';
 
     let loading = true;
     let projection: any;

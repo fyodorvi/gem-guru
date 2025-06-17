@@ -6,7 +6,7 @@ import {Calculation} from "../../src/models/calculation";
 describe('Service', () => {
     beforeEach(() => {
         jest.spyOn(repository, 'getProfileSettings').mockResolvedValue({
-            paymentDay: 15
+            paymentDueDate: '2024-01-15T00:00:00.000Z'
         });
         jest.useFakeTimers().setSystemTime(new Date('2024-01-01'));
     });
@@ -42,6 +42,11 @@ describe('Service', () => {
         });
 
         it('should provide correct calculation after first repayment date', async () => {
+            // Update the profile settings mock to have a due date in February
+            jest.spyOn(repository, 'getProfileSettings').mockResolvedValue({
+                paymentDueDate: '2024-02-15T00:00:00.000Z'
+            });
+            
             jest.useFakeTimers().setSystemTime(new Date('2024-01-16'));
 
             const purchases: Purchase[] = [{
@@ -134,7 +139,7 @@ describe('Service', () => {
 
         it('should provide correct calculation projection for multiple purchases', async () => {
             jest.spyOn(repository, 'getProfileSettings').mockResolvedValue({
-                paymentDay: 27
+                paymentDueDate: '2024-05-27T00:00:00.000Z'
             });
 
             jest.useFakeTimers().setSystemTime(new Date('2024-05-30'));

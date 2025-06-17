@@ -10,21 +10,27 @@ import {UserData} from "./models/userData";
 import {parseStatement} from "./statementParser";
 import {StatementParseResult, ParsedPurchase, UpsertSummary, InterimResult, NewPurchase, UpdatedPurchase, PaidOffPurchase} from "./models/statementParseResult";
 
-const _getNextPaymentDate = (paymentDay: number): DateTime => {
-    if (DateTime.now().day > paymentDay) {
-        return DateTime.now().plus({month: 1}).set({day: paymentDay});
-    } else {
-        return DateTime.now().set({day: paymentDay});
-    }
+const _getNextPaymentDate = (paymentDueDate: string): DateTime => {
+    return DateTime.fromISO(paymentDueDate);
 }
 
-const _getFirstPaymentDate = (item: Purchase, paymentDay: number): DateTime => {
+const _getFirstPaymentDate = (item: Purchase, paymentDueDate: string): DateTime => {
     const startDate = DateTime.fromISO(item.startDate);
-    if (startDate.day > paymentDay) {
-        return startDate.plus({ month: 1 }).set({ day: paymentDay, hour: 0, minute: 0, second: 0 });
-    } else {
-        return startDate.set({ day: paymentDay, hour: 0, minute: 0, second: 0 });
+    const dueDate = DateTime.fromISO(paymentDueDate);
+    
+    // Extract day and time from the due date
+    const dueDay = dueDate.day;
+    const dueTime = { hour: dueDate.hour, minute: dueDate.minute, second: dueDate.second };
+    
+    // Start with the month of the start date
+    let firstPayment = startDate.set({ day: dueDay, ...dueTime });
+    
+    // If the due day has already passed in the start month, move to next month
+    if (firstPayment <= startDate) {
+        firstPayment = firstPayment.plus({ month: 1 });
     }
+    
+    return firstPayment;
 }
 
 const _getPaymentsLeft = (nextPaymentDate: DateTime, expiryDate: DateTime): number => {
@@ -67,11 +73,39 @@ const _calculateItemPayments = (item: Purchase, firstPaymentDate: DateTime, next
     }
 }
 
+const _migrateLegacyProfileSettings = (profileSettings: any): ProfileSettings => {
+    // Handle legacy paymentDay format
+    if (profileSettings.paymentDay && !profileSettings.paymentDueDate) {
+        const today = DateTime.now();
+        let nextDueDate: DateTime;
+        
+        if (today.day > profileSettings.paymentDay) {
+            nextDueDate = today.plus({month: 1}).set({day: profileSettings.paymentDay});
+        } else {
+            nextDueDate = today.set({day: profileSettings.paymentDay});
+        }
+        
+        return {
+            paymentDueDate: nextDueDate.toISO() as string
+        };
+    }
+    
+    return profileSettings;
+}
+
 export const calculate = async(userId: string, loadedPurchases?: Purchase[]): Promise<Calculation> => {
     const purchases = loadedPurchases || await getPurchases(userId);
-    const profileSettings = await getProfileSettings(userId);
+    let profileSettings = await getProfileSettings(userId);
+    
+    // Migrate legacy profile settings if needed
+    profileSettings = _migrateLegacyProfileSettings(profileSettings);
+    
+    // If migrated, save the new format
+    if (!profileSettings.paymentDueDate) {
+        await setProfile(userId, profileSettings);
+    }
 
-    const nextPaymentDate = _getNextPaymentDate(profileSettings.paymentDay);
+    const nextPaymentDate = _getNextPaymentDate(profileSettings.paymentDueDate);
 
     const calculation: Calculation = {
         purchases: [],
@@ -80,7 +114,7 @@ export const calculate = async(userId: string, loadedPurchases?: Purchase[]): Pr
         nextPaymentDate: nextPaymentDate.toISO() as string
     }
     for(const purchase of purchases) {
-        const firstPayment = _getFirstPaymentDate(purchase, profileSettings.paymentDay);
+        const firstPayment = _getFirstPaymentDate(purchase, profileSettings.paymentDueDate);
         const nextPayment = _calculateItemRepayment(purchase, nextPaymentDate);
         const { paymentsTotal, paymentsDone } = _calculateItemPayments(purchase, firstPayment, nextPaymentDate);
         calculation.purchases.push({
@@ -100,7 +134,7 @@ export const calculateProjection = async(userId: string, loadedPurchases?: Purch
     const purchases = loadedPurchases || await getPurchases(userId);
 
     const profileSettings = await getProfileSettings(userId);
-    const firstPaymentDate = _getNextPaymentDate(profileSettings.paymentDay);
+    const firstPaymentDate = _getNextPaymentDate(profileSettings.paymentDueDate);
 
     const resultProjection: Projection = {
         months: []

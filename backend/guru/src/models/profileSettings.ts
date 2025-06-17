@@ -1,7 +1,7 @@
-import {IsDefined, IsNumber} from "class-validator";
+import {IsDefined, IsDateString} from "class-validator";
 
 export class ProfileSettings {
     @IsDefined()
-    @IsNumber()
-    paymentDay!: number;
+    @IsDateString()
+    paymentDueDate!: string; // ISO date string for the next payment due date
 }
