@@ -70,15 +70,6 @@
                     </p>
                 </div>
             </div>
-            <div class="flex items-start gap-3">
-                <CogOutline class="w-5 h-5 text-primary-600 mt-1 flex-shrink-0" />
-                <div>
-                    <h3 class="font-medium mb-1">Privacy Focused</h3>
-                    <p class="text-gray-600 dark:text-gray-300 text-sm">
-                        All calculations happen locally - your financial data never leaves your device
-                    </p>
-                </div>
-            </div>
         </div>
     </div>
 </div>
