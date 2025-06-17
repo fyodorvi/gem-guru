@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "npm run build:routify && vite",
-    "build": "vite build",
+    "build": "npm run build:routify && vite build",
     "build:routify": "routify -b",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json"
