@@ -2,12 +2,12 @@
     import { beforeUrlChange, goto, page } from '@roxi/routify'
     import {useAuth0} from "../services/auth0";
     import {onMount} from 'svelte';
-    import { Button } from 'flowbite-svelte';
-    import logo from '../assets/logo.png';
+
     import { Spinner } from 'flowbite-svelte';
     import { Navbar, NavBrand, NavLi, NavUl, NavHamburger, Avatar, Dropdown, DropdownItem, DropdownHeader } from 'flowbite-svelte';
 
-    let { isLoading, isAuthenticated, login, signup, logout, initializeAuth0, user } = useAuth0;
+    import { UserSolid } from 'flowbite-svelte-icons';
+    let { isLoading, isAuthenticated, logout, initializeAuth0, user } = useAuth0;
 
     // Add dropdown state management
     let dropdownOpen = false;
@@ -51,11 +51,6 @@
         }
     };
 
-    // Function to handle profile navigation
-    const handleProfileClick = () => {
-        $goto('/profile');
-    };
-
     // Function to handle mobile menu navigation
     const handleMobileNavClick = (toggleFn: () => void, href: string) => {
         // Only close the menu on mobile screens (below md breakpoint - 768px)
@@ -82,7 +77,9 @@
                 <span class="self-center whitespace-nowrap text-xl font-normal dark:text-white font-serif">Gem Guru</span>
             </NavBrand>
             <div class="flex items-center md:order-2">
-                <Avatar id="avatar-menu" class="cursor-pointer" on:click={() => dropdownOpen = !dropdownOpen} />
+                <Avatar id="avatar-menu" class="cursor-pointer dark:bg-transparent" on:click={() => dropdownOpen = !dropdownOpen}>
+                    <UserSolid class="w-10 h-10" />
+                </Avatar>
                 <NavHamburger class1="w-full md:flex md:w-auto md:order-1" />
             </div>
             <Dropdown placement="bottom" triggeredBy="#avatar-menu" bind:open={dropdownOpen}>
@@ -96,6 +93,7 @@
                 <NavLi class="cursor-pointer" activeClass="text-white bg-primary-700 md:bg-transparent md:text-primary-700" href="/calculator" on:click={() => handleMobileNavClick(toggle, '/calculator')}>Calculator</NavLi>
                 <NavLi class="cursor-pointer" activeClass="text-white bg-primary-700 md:bg-transparent md:text-primary-700" href="/projection" on:click={() => handleMobileNavClick(toggle, '/projection')}>Projection</NavLi>
                 <NavLi class="cursor-pointer" activeClass="text-white bg-primary-700 md:bg-transparent md:text-primary-700" href="/statement" on:click={() => handleMobileNavClick(toggle, '/statement')}>Statement</NavLi>
+                <NavLi class="cursor-pointer" activeClass="text-white bg-primary-700 md:bg-transparent md:text-primary-700" href="/about" on:click={() => handleMobileNavClick(toggle, '/about')}>About</NavLi>
             </NavUl>
         </Navbar>
         </div>
@@ -103,15 +101,6 @@
             <slot />
         </div>
     {:else}
-    <div class="flex h-screen">
-        <div class="m-auto text-center">
-            <img src={logo} class="w-80" alt="logo" />
-            <div class="w-auto"><h1 class="text-3xl mb-10 font-serif">Gem Guru</h1></div>
-            <div class="w-auto md:space-x-5">
-                <Button class="w-32" on:click={() => login()}>Login</Button>
-                <Button class="w-32" on:click={() => signup()}>Sign Up</Button>
-            </div>
-        </div>
-    </div>
+        <slot />
     {/if}
 {/if}

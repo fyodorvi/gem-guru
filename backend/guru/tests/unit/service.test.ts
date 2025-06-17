@@ -6,7 +6,8 @@ import {Calculation} from "../../src/models/calculation";
 describe('Service', () => {
     beforeEach(() => {
         jest.spyOn(repository, 'getProfileSettings').mockResolvedValue({
-            paymentDueDate: '2024-01-15T00:00:00.000Z'
+            paymentDueDate: '2024-01-15T00:00:00.000Z',
+            statementDate: '2024-01-10T00:00:00.000Z'
         });
         jest.useFakeTimers().setSystemTime(new Date('2024-01-01'));
     });
@@ -27,6 +28,7 @@ describe('Service', () => {
                 totalRemaining: 1000,
                 totalNextPayment: 500,
                 nextPaymentDate: '2024-01-15T13:00:00.000+13:00',
+                statementDate: '2024-01-10T00:00:00.000Z',
                 purchases: [{
                     name: 'test',
                     total: 1000,
@@ -44,7 +46,8 @@ describe('Service', () => {
         it('should provide correct calculation after first repayment date', async () => {
             // Update the profile settings mock to have a due date in February
             jest.spyOn(repository, 'getProfileSettings').mockResolvedValue({
-                paymentDueDate: '2024-02-15T00:00:00.000Z'
+                paymentDueDate: '2024-02-15T00:00:00.000Z',
+                statementDate: '2024-02-10T00:00:00.000Z'
             });
             
             jest.useFakeTimers().setSystemTime(new Date('2024-01-16'));
@@ -63,6 +66,7 @@ describe('Service', () => {
                 totalRemaining: 500,
                 totalNextPayment: 500,
                 nextPaymentDate: '2024-02-15T13:00:00.000+13:00',
+                statementDate: '2024-02-10T00:00:00.000Z',
                 purchases: [{
                     name: 'test',
                     total: 1000,
@@ -92,6 +96,7 @@ describe('Service', () => {
                 totalRemaining: 1000,
                 totalNextPayment: 334,
                 nextPaymentDate: '2024-01-15T13:00:00.000+13:00',
+                statementDate: '2024-01-10T00:00:00.000Z',
                 purchases: [{
                     name: 'test',
                     total: 1000,
@@ -122,6 +127,7 @@ describe('Service', () => {
                 totalRemaining: 150,
                 totalNextPayment: 150, // Should be remaining (150), not minimum payment (300)
                 nextPaymentDate: '2024-01-15T13:00:00.000+13:00',
+                statementDate: '2024-01-10T00:00:00.000Z',
                 purchases: [{
                     name: 'test',
                     total: 1000,
@@ -153,6 +159,7 @@ describe('Service', () => {
                 totalRemaining: 300,
                 totalNextPayment: 150, // Should be minimum payment (150) since it's higher than equal payment (100)
                 nextPaymentDate: '2024-01-15T13:00:00.000+13:00',
+                statementDate: '2024-01-10T00:00:00.000Z',
                 purchases: [{
                     name: 'test',
                     total: 1000,
@@ -184,6 +191,7 @@ describe('Service', () => {
                 totalRemaining: 600,
                 totalNextPayment: 200, // Should be equal payment (200) since it's higher than minimum payment (100)
                 nextPaymentDate: '2024-01-15T13:00:00.000+13:00',
+                statementDate: '2024-01-10T00:00:00.000Z',
                 purchases: [{
                     name: 'test',
                     total: 1000,
@@ -232,7 +240,8 @@ describe('Service', () => {
 
         it('should provide correct calculation projection for multiple purchases', async () => {
             jest.spyOn(repository, 'getProfileSettings').mockResolvedValue({
-                paymentDueDate: '2024-05-27T00:00:00.000Z'
+                paymentDueDate: '2024-05-27T00:00:00.000Z',
+                statementDate: '2024-05-06T00:00:00.000Z'
             });
 
             jest.useFakeTimers().setSystemTime(new Date('2024-05-30'));
@@ -258,12 +267,12 @@ describe('Service', () => {
 
             expect(projection).toEqual({
                 months: [
-                    { date: 'May 2024', amountToPay: 2500 },
-                    { date: 'June 2024', amountToPay: 2500 },
-                    { date: 'July 2024', amountToPay: 2500 },
-                    { date: 'August 2024', amountToPay: 2500 },
-                    { date: 'September 2024', amountToPay: 2500 },
-                    { date: 'October 2024', amountToPay: 2500 },
+                    { date: 'May 2024', amountToPay: 2000 }, // Adjusted for statement date filtering
+                    { date: 'June 2024', amountToPay: 2600 }, // All purchases included from June onwards
+                    { date: 'July 2024', amountToPay: 2600 },
+                    { date: 'August 2024', amountToPay: 2600 },
+                    { date: 'September 2024', amountToPay: 2600 },
+                    { date: 'October 2024', amountToPay: 2600 },
                     { date: 'November 2024', amountToPay: 0 },
                     { date: 'December 2024', amountToPay: 0 },
                     { date: 'January 2025', amountToPay: 0 },
@@ -276,7 +285,8 @@ describe('Service', () => {
 
         it('should handle future purchases correctly in projection', async () => {
             jest.spyOn(repository, 'getProfileSettings').mockResolvedValue({
-                paymentDueDate: '2024-01-15T00:00:00.000Z'
+                paymentDueDate: '2024-01-15T00:00:00.000Z',
+                statementDate: '2024-01-10T00:00:00.000Z'
             });
 
             jest.useFakeTimers().setSystemTime(new Date('2024-01-20'));

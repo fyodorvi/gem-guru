@@ -3,17 +3,19 @@
     import {onMount} from "svelte";
     import {loadProjection} from "../services/api";
     import type {ApexOptions} from "apexcharts";
-    import {toCurrencyDisplay} from "../services/format";
-    import { calculation } from '../services/store';
     import Currency from "../components/display/Currency.svelte";
 
     let loading = true;
     let projection: any;
+    let hasActiveProjection = false;
 
     let options: ApexOptions;
 
     onMount(async () => {
         projection = await loadProjection();
+
+        // Check if there are any purchases with actual amounts to pay
+        hasActiveProjection = projection.months.some((month) => month.amountToPay > 0);
 
         options = {
             chart: {
@@ -112,27 +114,42 @@
 <Heading tag="h5" class="font-normal mb-5">Projection</Heading>
 
 {#if !loading}
-    <Chart {options} />
-    
-    <div class="mt-8">
-        <Heading tag="h6" class="font-normal mb-4">Monthly Breakdown</Heading>
-        <div class="w-full overflow-x-auto">
-            <Table striped={true} class="border">
-                <TableHead class="border-b">
-                    <TableHeadCell>Month</TableHeadCell>
-                    <TableHeadCell>Payment</TableHeadCell>
-                </TableHead>
-                <TableBody tableBodyClass="divide-y">
-                    {#each projection.months as month}
-                    <TableBodyRow>
-                        <TableBodyCell>{month.date}</TableBodyCell>
-                        <TableBodyCell><Currency value={month.amountToPay} /></TableBodyCell>
-                    </TableBodyRow>
-                    {/each}
-                </TableBody>
-            </Table>
+    {#if hasActiveProjection}
+        <Chart {options} />
+        
+        <div class="mt-8">
+            <Heading tag="h6" class="font-normal mb-4">Monthly Breakdown</Heading>
+            <div class="w-full overflow-x-auto">
+                <Table striped={true} class="border">
+                    <TableHead class="border-b">
+                        <TableHeadCell>Month</TableHeadCell>
+                        <TableHeadCell>Payment</TableHeadCell>
+                    </TableHead>
+                    <TableBody tableBodyClass="divide-y">
+                        {#each projection.months as month}
+                        <TableBodyRow>
+                            <TableBodyCell>{month.date}</TableBodyCell>
+                            <TableBodyCell><Currency value={month.amountToPay} /></TableBodyCell>
+                        </TableBodyRow>
+                        {/each}
+                    </TableBody>
+                </Table>
+            </div>
         </div>
-    </div>
+    {:else}
+        <div class="text-center py-16">
+            <div class="text-gray-400 dark:text-gray-500 mb-4">
+                <svg class="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No purchases to project</h3>
+            <p class="text-gray-500 dark:text-gray-400 mb-6">Add some purchases to see your payment projection over the next 12 months.</p>
+            <a href="/calculator" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 transition-colors">
+                Go to Calculator
+            </a>
+        </div>
+    {/if}
 {:else}
     <Spinner />
 {/if}

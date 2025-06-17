@@ -106,8 +106,12 @@ const _migrateLegacyProfileSettings = (profileSettings: any): ProfileSettings =>
             nextDueDate = today.set({ day: profileSettings.paymentDay });
         }
 
+        // Set default statement date to 3 weeks before the due date
+        const statementDate = nextDueDate.minus({ days: 21 });
+
         return {
             paymentDueDate: nextDueDate.toISO() as string,
+            statementDate: statementDate.toISO() as string,
         };
     }
 
@@ -121,8 +125,22 @@ export const calculate = async (userId: string, loadedPurchases?: Purchase[]): P
     // Migrate legacy profile settings if needed
     profileSettings = _migrateLegacyProfileSettings(profileSettings);
 
-    // If migrated, save the new format
+    // Ensure statementDate is set for onboarding scenarios
+    let needsSave = false;
     if (!profileSettings.paymentDueDate) {
+        needsSave = true;
+    }
+    if (!profileSettings.statementDate) {
+        // Set default statement date to 3 weeks before the payment due date
+        const dueDate = new Date(profileSettings.paymentDueDate);
+        const statementDate = new Date(dueDate);
+        statementDate.setDate(statementDate.getDate() - 21); // 3 weeks back
+        profileSettings.statementDate = statementDate.toISOString().split('T')[0] + 'T00:00:00.000Z';
+        needsSave = true;
+    }
+
+    // If migrated or missing statementDate, save the new format
+    if (needsSave) {
         await setProfile(userId, profileSettings);
     }
 
@@ -133,7 +151,7 @@ export const calculate = async (userId: string, loadedPurchases?: Purchase[]): P
         totalNextPayment: 0,
         totalRemaining: 0,
         nextPaymentDate: nextPaymentDate.toISO() as string,
-        statementDate: profileSettings.statementDate,
+        statementDate: profileSettings.statementDate!,
     };
 
         for (const purchase of purchases) {
@@ -143,14 +161,12 @@ export const calculate = async (userId: string, loadedPurchases?: Purchase[]): P
         
         // Check if purchase started after statement date - if so, exclude from current payment
         let isAfterStatementDate = false;
-        if (profileSettings.statementDate) {
-            const statementDate = DateTime.fromISO(profileSettings.statementDate).set({ hour: 23, minute: 59, second: 59 });
-            const purchaseStartDate = DateTime.fromISO(purchase.startDate);
-            if (purchaseStartDate > statementDate) {
-                nextPayment = 0; // Don't include in current payment
-                isAfterStatementDate = true;
-                console.log(`🗓️ Purchase ${purchase.name} started after statement date - excluding from current payment`);
-            }
+        const statementDate = DateTime.fromISO(profileSettings.statementDate).set({ hour: 23, minute: 59, second: 59 });
+        const purchaseStartDate = DateTime.fromISO(purchase.startDate);
+        if (purchaseStartDate > statementDate) {
+            nextPayment = 0; // Don't include in current payment
+            isAfterStatementDate = true;
+            console.log(`🗓️ Purchase ${purchase.name} started after statement date - excluding from current payment`);
         }
         
         calculation.purchases.push({
@@ -185,8 +201,8 @@ export const calculateProjection = async (userId: string, loadedPurchases?: Purc
         const nextPaymentDate = firstPaymentDate.plus({ month: i });
         let totalAmountToPay = 0;
         for (const purchase of purchases) {
-                        // Filter by statement date if available - exclude from first month if started after statement date
-            if (profileSettings.statementDate && i === 0) {
+            // Filter by statement date - exclude from first month if started after statement date
+            if (i === 0) {
                 const statementDate = DateTime.fromISO(profileSettings.statementDate).set({
                     hour: 23,
                     minute: 59,

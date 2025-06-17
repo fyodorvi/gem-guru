@@ -16,7 +16,7 @@
         Select,
         Checkbox
     } from 'flowbite-svelte';
-    import { PlusOutline, DotsHorizontalOutline, CalendarMonthOutline, EditOutline, CheckCircleOutline, ExclamationCircleOutline, PenOutline } from 'flowbite-svelte-icons';
+    import { PlusOutline, CalendarMonthOutline, EditOutline, CheckCircleOutline, ExclamationCircleOutline } from 'flowbite-svelte-icons';
     import {type CalculatedPurchase, loadCalculation, deletePurchase, setProfile} from "../services/api";
     import type { Context } from 'svelte-simple-modal';
     import PurchaseModal from "../components/PurchaseModal.svelte";
@@ -105,7 +105,7 @@
         
         // Set due date and statement date from the calculation
         paymentDueDate = updatedCalculation.nextPaymentDate;
-        statementDate = updatedCalculation.statementDate || '';
+        statementDate = updatedCalculation.statementDate;
 
         loading = false;
     }
@@ -256,30 +256,9 @@
 {#if !loading}
     <div class="w-full">
         <!-- Payment Summary Section - Moved to Top -->
+        {#if $calculation.purchases.length !== 0}
         <Heading tag="h5" class="font-normal mb-5">Payment Summary</Heading>
                 <div class="mb-8 p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border">
-
-            {#if $calculation.purchases.length === 0}
-                <!-- Empty State -->
-                <div class="text-center py-8">
-                    <div class="text-gray-500 dark:text-gray-400 mb-4">
-                        <svg class="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                        </svg>
-                        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No purchases found</h3>
-                        <p class="text-sm mb-4">To start calculating payments, you need to add purchases or upload a statement.</p>
-                        <div class="flex justify-center gap-3">
-                            <Button on:click={() => addPurchase()} color="primary" size="sm">
-                                <PlusOutline class="w-4 h-4 mr-2" />
-                                Add Purchase
-                            </Button>
-                            <Button href="/statement" color="alternative" size="sm">
-                                Upload Statement
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            {:else}
                 <!-- Warning for Past Due Date -->
                 {#if isDueDateInPast}
                     <Alert color="yellow" class="mb-5 p-0">
@@ -303,7 +282,7 @@
                                          <Alert color="blue" class="mb-5 p-0">
                          <ExclamationCircleOutline slot="icon" class="w-4 h-4" />
                          <span class="font-medium">{futurePurchases.length} purchase{futurePurchases.length > 1 ? 's' : ''} not included in payment calculation</span><br />
-                         <span class="text-sm">{futurePurchases.length > 1 ? 'These purchases' : 'This purchase'} started after your last statement date and will be included in future billing cycles.</span>
+                         <span class="text-sm">{futurePurchases.length > 1 ? 'These purchases' : 'This purchase'} started after your last statement date and will be included in future billing cycle.</span>
                      </Alert>
                 {/if}
 
@@ -336,18 +315,16 @@
                 {/if}
 
                 <!-- Statement Date Display -->
-                {#if statementDate}
-                    <div class="text-md mt-3 text-gray-500 dark:text-gray-400">
-                        Last statement date: 
-                        <button 
-                            type="button"
-                            on:click={showStatementDateSelector}
-                            class="inline-flex items-center gap-1 hover:text-gray-800 dark:hover:text-gray-100 underline decoration-dotted transition-colors"
-                        >
-                            <FormattedDate value={statementDate}/>
-                        </button>
-                    </div>
-                {/if}
+                <div class="text-md mt-3 text-gray-500 dark:text-gray-400">
+                    Last statement date: 
+                    <button 
+                        type="button"
+                        on:click={showStatementDateSelector}
+                        class="inline-flex items-center gap-1 hover:text-gray-800 dark:hover:text-gray-100 underline decoration-dotted transition-colors"
+                    >
+                        <FormattedDate value={statementDate}/>
+                    </button>
+                </div>
                 
                 <!-- Statement Date Editor (Hidden by default) -->
                 {#if showStatementDateEditor}
@@ -365,9 +342,8 @@
                 <div class="text-md mt-2 text-gray-600 dark:text-gray-400">
                     Total remaining: <Currency value={adjustedTotalRemaining} />
                 </div>
-            {/if}
         </div>
-
+        {/if}
         <!-- Purchases Section -->
         {#if $calculation.purchases.length > 0}
         <Heading tag="h5" class="font-normal mb-5">My Purchases <Button on:click={() => addPurchase()} class="inline-block ml-2 p-2"><PlusOutline /></Button></Heading>
@@ -464,14 +440,49 @@
             {/each}
         </ul>
         {:else}
-        <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+        <div class="text-center py-16">
+            <div class="text-gray-400 dark:text-gray-500 mb-4">
+                <svg class="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+            </div>
             {#if !showPaidOff}
-                <p>No active purchases found. Check "Show Paid Off" to see all purchases.</p>
+                <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No active purchases found</h3>
+                <p class="text-gray-500 dark:text-gray-400 mb-6">Check "Show Paid Off" to see all purchases, or add a new purchase to get started.</p>
             {:else}
-                <p>No purchases found.</p>
+                <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No purchases found</h3>
+                <p class="text-gray-500 dark:text-gray-400 mb-6">Add your first purchase to start calculating payment breakdowns.</p>
             {/if}
+            <button 
+                on:click={addPurchase}
+                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 transition-colors"
+            >
+                Add Purchase
+            </button>
         </div>
         {/if}
+        {:else}
+        <!-- No purchases at all empty state -->
+        <div class="text-center py-16">
+            <div class="text-gray-400 dark:text-gray-500 mb-4">
+                <svg class="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No purchases yet</h3>
+            <p class="text-gray-500 dark:text-gray-400 mb-6">Add your first purchase to start calculating payment breakdowns and projections.</p>
+            <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                <button 
+                    on:click={addPurchase}
+                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 transition-colors"
+                >
+                    Add Purchase
+                </button>
+                <a href="/statement" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 transition-colors">
+                    Upload Statement
+                </a>
+            </div>
+        </div>
         {/if}
         
         <!-- Payment Breakdown Table -->
