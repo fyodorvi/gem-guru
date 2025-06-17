@@ -17,11 +17,11 @@ console.log('📋 Environment:', {
     NODE_ENV: process.env.NODE_ENV,
     PORT: process.env.PORT,
     Auth0Audience: process.env.Auth0Audience ? '***' : 'not set',
-    Auth0Issuer: process.env.Auth0Issuer ? '***' : 'not set'
+    Auth0Issuer: process.env.Auth0Issuer ? '***' : 'not set',
 });
 
 try {
-    console.log('📦 Loading routes...');
+    console.log('📦 Loading pages...');
     const routes = require('./src/controller');
     console.log('✅ Routes loaded successfully');
 
@@ -39,8 +39,8 @@ try {
             auth({
                 issuerBaseURL: process.env.Auth0Issuer,
                 audience: process.env.Auth0Audience,
-                tokenSigningAlg: 'RS256'
-            })
+                tokenSigningAlg: 'RS256',
+            }),
         );
         console.log('🔐 Auth middleware enabled');
     } else {
@@ -49,8 +49,8 @@ try {
             // Mock auth object for development
             (req as any).auth = {
                 payload: {
-                    sub: 'dev-user-123' // Mock user ID for development
-                }
+                    sub: 'dev-user-123', // Mock user ID for development
+                },
             };
             next();
         });
@@ -59,13 +59,13 @@ try {
 
     app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
         if (err) {
-            console.error('❌ Error:', err)
+            console.error('❌ Error:', err);
             console.error('📥 Headers:', req.headers);
-            res.status(500).send('Something broke!')
+            res.status(500).send('Something broke!');
         } else {
             next();
         }
-    })
+    });
 
     app.use('/', routes.default || routes);
 
@@ -94,8 +94,7 @@ try {
             console.error(`❌ Port ${PORT} is already in use. Please stop other processes or change the port.`);
         }
     });
-
 } catch (error) {
     console.error('❌ Failed to start server:', error);
     process.exit(1);
-} 
+}

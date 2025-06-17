@@ -1,6 +1,5 @@
-
 export interface ProjectionMonth {
-    date: string,
+    date: string;
     amountToPay: number;
 }
 export interface Projection {

@@ -17,19 +17,19 @@ app.use(
     auth({
         issuerBaseURL: process.env.Auth0Issuer,
         audience: process.env.Auth0Audience,
-        tokenSigningAlg: 'RS256'
-    })
+        tokenSigningAlg: 'RS256',
+    }),
 );
 
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
     if (err) {
-        console.error(err)
+        console.error(err);
         console.error(req.headers);
-        res.status(500).send('Something broke!')
+        res.status(500).send('Something broke!');
     } else {
         next();
     }
-})
+});
 
 app.use('/', routes);
 
@@ -42,4 +42,3 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 });
 
 export const lambdaHandler = serverless(app);
-

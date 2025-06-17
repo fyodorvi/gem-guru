@@ -1,4 +1,4 @@
-import { IsDefined, IsString, IsNumber, IsOptional } from "class-validator";
+import { IsDefined, IsString, IsNumber, IsOptional } from 'class-validator';
 
 export class StatementRequest {
     @IsDefined()
@@ -16,4 +16,4 @@ export class StatementRequest {
     @IsDefined()
     @IsString()
     fileData!: string; // base64 encoded PDF data
-} 
+}

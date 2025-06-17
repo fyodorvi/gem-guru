@@ -101,7 +101,7 @@
             <ChevronUpOutline class="w-7 h-7" />
         </button>
         
-        <div class="flex flex-col items-center my-2 min-w-[3rem] pt-3 pb-3">
+        <div class="flex flex-col items-center my-2 min-w-[3rem] pt-2 pb-2">
             <span class="text-2xl font-bold text-gray-900 dark:text-white text-center">
                 {day.toString().padStart(2, '0')}
             </span>
@@ -128,7 +128,7 @@
             <ChevronUpOutline class="w-7 h-7" />
         </button>
         
-        <div class="flex flex-col items-center my-2 min-w-[6rem] pt-2">
+        <div class="flex flex-col items-center my-2 min-w-[6rem] pt-0">
             <span class="text-lg font-semibold text-gray-900 dark:text-white text-center">
                 {monthNames[month]}
             </span>

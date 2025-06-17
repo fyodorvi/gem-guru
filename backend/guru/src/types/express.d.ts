@@ -3,7 +3,7 @@ declare namespace Express {
         auth?: {
             payload?: {
                 sub?: string;
-            }
-        }
+            };
+        };
     }
-} 
+}

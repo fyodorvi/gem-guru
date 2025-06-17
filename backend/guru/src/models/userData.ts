@@ -1,5 +1,5 @@
-import {Purchase} from "./purchase";
-import {ProfileSettings} from "./profileSettings";
+import { Purchase } from './purchase';
+import { ProfileSettings } from './profileSettings';
 
 export interface UserData {
     purchases: Purchase[];

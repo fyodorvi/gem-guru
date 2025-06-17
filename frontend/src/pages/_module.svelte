@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { beforeUrlChange, isActive, goto } from '@roxi/routify'
+    import { beforeUrlChange, goto, page } from '@roxi/routify'
     import {useAuth0} from "../services/auth0";
     import {onMount} from 'svelte';
     import { Button } from 'flowbite-svelte';
@@ -12,8 +12,8 @@
     // Add dropdown state management
     let dropdownOpen = false;
     
-    // Mobile menu state - let Flowbite handle the show/hide, we just track when to close it
-    let shouldCloseMenu = false;
+    // Get current URL from Routify page store
+    $: activeUrl = $page.path;
 
     $beforeUrlChange(() => {
         return $isAuthenticated;
@@ -92,10 +92,10 @@
                 <!-- <DropdownItem on:click={() => handleDropdownItemClick(handleProfileClick)}>Profile</DropdownItem> -->
                 <DropdownItem on:click={() => handleDropdownItemClick(() => logout({ logoutParams: {returnTo: window.location.origin,}}))}>Sign out</DropdownItem>
             </Dropdown>
-            <NavUl>
-                <NavLi class="cursor-pointer" on:click={() => handleMobileNavClick(toggle, '/calculator')} active={true}>Calculator</NavLi>
-                <NavLi class="cursor-pointer" on:click={() => handleMobileNavClick(toggle, '/projection')}>Projection</NavLi>
-                <NavLi class="cursor-pointer" on:click={() => handleMobileNavClick(toggle, '/statement')}>Statement</NavLi>
+            <NavUl {activeUrl}>
+                <NavLi class="cursor-pointer" activeClass="text-white bg-primary-700 md:bg-transparent md:text-primary-700" href="/calculator" on:click={() => handleMobileNavClick(toggle, '/calculator')}>Calculator</NavLi>
+                <NavLi class="cursor-pointer" activeClass="text-white bg-primary-700 md:bg-transparent md:text-primary-700" href="/projection" on:click={() => handleMobileNavClick(toggle, '/projection')}>Projection</NavLi>
+                <NavLi class="cursor-pointer" activeClass="text-white bg-primary-700 md:bg-transparent md:text-primary-700" href="/statement" on:click={() => handleMobileNavClick(toggle, '/statement')}>Statement</NavLi>
             </NavUl>
         </Navbar>
         </div>

@@ -28,6 +28,7 @@ export interface Calculation {
     totalRemaining: number;
     totalNextPayment: number;
     nextPaymentDate: string;
+    statementDate?: string; // Last statement date for billing cycle logic
     purchases: CalculatedPurchase[]
 }
 
@@ -44,6 +45,7 @@ export interface Purchase {
 
 export interface ProfileSettings {
     paymentDueDate: string; // ISO date string
+    statementDate?: string; // Last statement date for billing cycle logic
 }
 
 export interface ParsedPurchase {

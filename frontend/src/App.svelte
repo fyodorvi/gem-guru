@@ -1,11 +1,7 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { Router, createRouter } from '@roxi/routify'
-  import routes from '../.routify/routes.default.js'
-  import { Alert } from 'flowbite-svelte';
+  import { Router } from '@roxi/routify'
+  import { routes } from '../.routify/routes'
   import Modal from 'svelte-simple-modal';
-
-  export const router = createRouter({ routes })
 </script>
 
 
@@ -15,7 +11,7 @@
        classWindow="flex relative max-w-2xl w-full max-h-full"
        classContent="bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-lg border-gray-200 dark:border-gray-700 divide-gray-200 dark:divide-gray-700 shadow-md relative flex flex-col mx-auto w-full divide-y">
   <div class="container md:mx-auto">
-    <Router {router} />
+    <Router {routes} />
   </div>
 </Modal>
 

@@ -1,4 +1,4 @@
-import {IsBoolean, IsDateString, IsDefined, IsNumber, IsOptional, IsString} from "class-validator";
+import { IsBoolean, IsDateString, IsDefined, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class Purchase {
     @IsOptional()

@@ -15,5 +15,6 @@ export interface Calculation {
     totalRemaining: number;
     totalNextPayment: number;
     nextPaymentDate: string;
-    purchases: CalculatedPurchase[]
+    statementDate?: string;
+    purchases: CalculatedPurchase[];
 }

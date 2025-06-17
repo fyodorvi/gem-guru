@@ -26,13 +26,17 @@
     import RemainingModal from "../components/RemainingModal.svelte";
     import FormattedDate from "../components/display/FormattedDate.svelte";
     import PaymentDueDateInput from "../components/input/PaymentDueDateInput.svelte";
+    import { toDateDisplay } from "../services/format";
 
     let loading = true;
     let deleting: string | null = null;
     let updatingDueDate = false;
     let paymentDueDate = '';
+    let statementDate = '';
     let showDueDateEditor = false;
+    let showStatementDateEditor = false;
     let tempDueDate = '';
+    let tempStatementDate = '';
 
     // Sorting and filtering state
     let sortBy = 'startDate';
@@ -99,8 +103,9 @@
         const updatedCalculation = await loadCalculation();
         calculation.update(() => updatedCalculation);
         
-        // Set due date from the calculation
+        // Set due date and statement date from the calculation
         paymentDueDate = updatedCalculation.nextPaymentDate;
+        statementDate = updatedCalculation.statementDate || '';
 
         loading = false;
     }
@@ -136,14 +141,36 @@
         showDueDateEditor = true;
     };
     
+    const showStatementDateSelector = () => {
+        tempStatementDate = statementDate;
+        showStatementDateEditor = true;
+    };
+    
     const onDueDateConfirm = async (event) => {
         const newDueDate = event.detail;
         if (!newDueDate) return;
         
         updatingDueDate = true;
         try {
-            // Store the new due date in profile settings
-            await setProfile({ paymentDueDate: newDueDate });
+            // Calculate the day difference to adjust statement date proportionally
+            let newStatementDate = statementDate;
+            if (statementDate) {
+                const oldDueDate = new Date(paymentDueDate);
+                const newDueDateObj = new Date(newDueDate);
+                const dayDifference = Math.floor((newDueDateObj.getTime() - oldDueDate.getTime()) / (1000 * 60 * 60 * 24));
+                
+                if (dayDifference !== 0) {
+                    const oldStatementDate = new Date(statementDate);
+                    oldStatementDate.setDate(oldStatementDate.getDate() + dayDifference);
+                    newStatementDate = oldStatementDate.toISOString();
+                }
+            }
+            
+            // Store the new due date and adjusted statement date in profile settings
+            await setProfile({ 
+                paymentDueDate: newDueDate,
+                statementDate: newStatementDate
+            });
             
             // Reload calculation to get updated values
             await reloadCalculation();
@@ -155,24 +182,54 @@
         }
     };
     
+    const onStatementDateConfirm = async (event) => {
+        const newStatementDate = event.detail;
+        if (!newStatementDate) return;
+        
+        updatingDueDate = true;
+        try {
+            // Store the new statement date in profile settings
+            await setProfile({ 
+                paymentDueDate: paymentDueDate,
+                statementDate: newStatementDate
+            });
+            
+            // Reload calculation to get updated values
+            await reloadCalculation();
+            
+            // Hide the editor
+            showStatementDateEditor = false;
+        } finally {
+            updatingDueDate = false;
+        }
+    };
+    
     const onDueDateCancel = () => {
         showDueDateEditor = false;
         tempDueDate = paymentDueDate; // Reset temp value
+    };
+    
+    const onStatementDateCancel = () => {
+        showStatementDateEditor = false;
+        tempStatementDate = statementDate; // Reset temp value
     };
 
     // Check if purchase is paid off
     const isPaidOff = (purchase: CalculatedPurchase) => purchase.remaining === 0;
     
-    // Check if purchase is a "future purchase" (started after the due date)
+    // Check if purchase is a "future purchase" (started after the statement date)
     const isFuturePurchase = (purchase: CalculatedPurchase) => {
-        if (!paymentDueDate) return false;
+        if (!statementDate) return false;
         const startDate = new Date(purchase.startDate);
-        const dueDate = new Date(paymentDueDate);
-        return startDate > dueDate;
+        const statementDateObj = new Date(statementDate);
+        return startDate > statementDateObj;
     };
     
     // Check if due date is in the past
     $: isDueDateInPast = paymentDueDate && new Date(paymentDueDate) < new Date(new Date().toDateString());
+    
+    // Check if statement date is after due date (invalid configuration)
+    $: isStatementDateAfterDueDate = statementDate && paymentDueDate && new Date(statementDate) >= new Date(paymentDueDate);
 
     // Apply sorting and filtering
     $: sortedPurchases = (() => {
@@ -232,12 +289,21 @@
                     </Alert>
                 {/if}
 
+                <!-- Warning for Statement Date After Due Date -->
+                {#if isStatementDateAfterDueDate}
+                    <Alert color="red" class="mb-5 p-0">
+                        <ExclamationCircleOutline slot="icon" class="w-4 h-4" />
+                        <span class="font-medium">Invalid date configuration!</span>
+                        Statement date cannot be after due date. Please adjust the dates.
+                    </Alert>
+                {/if}
+
                 <!-- Future Purchases Warning -->
                 {#if futurePurchases.length > 0}
                                          <Alert color="blue" class="mb-5 p-0">
                          <ExclamationCircleOutline slot="icon" class="w-4 h-4" />
                          <span class="font-medium">{futurePurchases.length} purchase{futurePurchases.length > 1 ? 's' : ''} not included in payment calculation</span><br />
-                         <span class="text-sm">{futurePurchases.length > 1 ? 'These purchases' : 'This purchase'} started after your payment due date and will be included in future payment cycles.</span>
+                         <span class="text-sm">{futurePurchases.length > 1 ? 'These purchases' : 'This purchase'} started after your last statement date and will be included in future billing cycles.</span>
                      </Alert>
                 {/if}
 
@@ -255,21 +321,48 @@
                         <Currency value={adjustedTotalNextPayment} />
                     </span>
                 </div>
-                
+
                 <!-- Due Date Editor (Hidden by default) -->
                 {#if showDueDateEditor}
                     <div class="mt-4 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg border-2 border-primary-200 dark:border-primary-700">
                         <Label class="mb-3 block text-sm font-medium">Edit Payment Due Date</Label>
+                        <PaymentDueDateInput
+                                bind:value={tempDueDate}
+                                updating={updatingDueDate}
+                                on:confirm={onDueDateConfirm}
+                                on:cancel={onDueDateCancel}
+                        />
+                    </div>
+                {/if}
+
+                <!-- Statement Date Display -->
+                {#if statementDate}
+                    <div class="text-md mt-3 text-gray-500 dark:text-gray-400">
+                        Last statement date: 
+                        <button 
+                            type="button"
+                            on:click={showStatementDateSelector}
+                            class="inline-flex items-center gap-1 hover:text-gray-800 dark:hover:text-gray-100 underline decoration-dotted transition-colors"
+                        >
+                            <FormattedDate value={statementDate}/>
+                        </button>
+                    </div>
+                {/if}
+                
+                <!-- Statement Date Editor (Hidden by default) -->
+                {#if showStatementDateEditor}
+                    <div class="mt-4 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg border-2 border-gray-200 dark:border-gray-600">
+                        <Label class="mb-3 block text-sm font-medium">Edit Statement Date</Label>
                         <PaymentDueDateInput 
-                            bind:value={tempDueDate} 
+                            bind:value={tempStatementDate} 
                             updating={updatingDueDate}
-                            on:confirm={onDueDateConfirm}
-                            on:cancel={onDueDateCancel}
+                            on:confirm={onStatementDateConfirm}
+                            on:cancel={onStatementDateCancel}
                         />
                     </div>
                 {/if}
                 
-                <div class="text-lg mt-2 text-gray-600 dark:text-gray-400">
+                <div class="text-md mt-2 text-gray-600 dark:text-gray-400">
                     Total remaining: <Currency value={adjustedTotalRemaining} />
                 </div>
             {/if}
@@ -324,12 +417,14 @@
                         </div>
                         <div class="mt-3">Total: <span class="font-bold"><Currency value={purchase.total} /></span></div>
                         <div class="mt-1">
-                            Remaining: <Currency value={purchase.remaining} />
+                            Remaining:
                             {#if !isPaidOff(purchase)}
-                                <Button on:click={() => editPurchaseRemaining(purchase)} class="inline-block ml-2 p-1" color="alternative"><DotsHorizontalOutline /></Button>
+                                <span on:click={() => editPurchaseRemaining(purchase)}><Currency underline={true} value={purchase.remaining} /></span>
+                            {:else}
+                                <Currency value={purchase.remaining} />
                             {/if}
                         </div>
-                        <div class="mt-4"><CalendarMonthOutline class="inline-block" /> {new Date(purchase.expiryDate).toLocaleDateString()}</div>
+                        <div class="mt-4"><CalendarMonthOutline class="inline-block" /> {toDateDisplay(purchase.startDate)} - {toDateDisplay(purchase.expiryDate)}</div>
                     </div>
                         <div class="sm:ml-auto sm:mt-10 mt-4">
                             {#if isPaidOff(purchase)}

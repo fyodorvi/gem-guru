@@ -9,9 +9,7 @@ export interface ParsedPurchase {
     paymentType?: 'fixed' | 'monthly' | 'none';
 }
 
-export interface NewPurchase extends ParsedPurchase {
-    // All details are included from ParsedPurchase
-}
+export type NewPurchase = ParsedPurchase;
 
 export interface UpdatedPurchase {
     id: string;
@@ -52,4 +50,4 @@ export interface StatementParseResult {
     currentDueDate?: string; // Current due date from user profile for comparison
     upsertSummary?: UpsertSummary;
     interimResult?: InterimResult;
-} 
+}
