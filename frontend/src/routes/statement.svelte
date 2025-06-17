@@ -246,11 +246,11 @@
             {/if}
 
             <!-- Updated Purchases -->
-            {#if parseResult.interimResult.updatedPurchases.length > 0 && hasChanges(parseResult)}
+            {#if parseResult.interimResult.updatedPurchases.length > 0 && parseResult.interimResult.updatedPurchases.some(purchase => purchase.oldRemaining !== purchase.newRemaining)}
                 <Card class="mb-6 w-full" style="max-width: none;">
                     <div class="flex items-center gap-2 mb-4">
                         <Heading tag="h6">Updated Purchases</Heading>
-                        <Badge color="yellow">{parseResult.interimResult.updatedPurchases.length}</Badge>
+                        <Badge color="yellow">{parseResult.interimResult.updatedPurchases.filter(purchase => purchase.oldRemaining !== purchase.newRemaining).length}</Badge>
                     </div>
                     <div class="w-full overflow-x-auto" style="max-width: none;">
                         <Table striped={true} class="border w-full" style="max-width: none;">
@@ -261,18 +261,12 @@
                                 <TableHeadCell>New Remaining</TableHeadCell>
                             </TableHead>
                             <TableBody tableBodyClass="divide-y">
-                                {#each parseResult.interimResult.updatedPurchases as purchase}
+                                {#each parseResult.interimResult.updatedPurchases.filter(purchase => purchase.oldRemaining !== purchase.newRemaining) as purchase}
                                 <TableBodyRow>
                                     <TableBodyCell>{purchase.name}</TableBodyCell>
-                                    {#if purchase.oldRemaining === purchase.newRemaining}
-                                        <TableBodyCell colspan="3" class="text-center text-gray-500 italic">
-                                            No change (<Currency value={purchase.oldRemaining} />)
-                                        </TableBodyCell>
-                                    {:else}
-                                        <TableBodyCell><Currency value={purchase.oldRemaining} /></TableBodyCell>
-                                        <TableBodyCell class="text-center"><ArrowRightOutline class="w-4 h-4 text-gray-400" /></TableBodyCell>
-                                        <TableBodyCell><Currency value={purchase.newRemaining} /></TableBodyCell>
-                                    {/if}
+                                    <TableBodyCell><Currency value={purchase.oldRemaining} /></TableBodyCell>
+                                    <TableBodyCell class="text-center"><ArrowRightOutline class="w-4 h-4 text-gray-400" /></TableBodyCell>
+                                    <TableBodyCell><Currency value={purchase.newRemaining} /></TableBodyCell>
                                 </TableBodyRow>
                                 {/each}
                             </TableBody>

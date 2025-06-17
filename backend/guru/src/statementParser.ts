@@ -22,6 +22,12 @@ export async function parseStatement(pdfBuffer: Buffer): Promise<StatementParseR
             result.dueDate = dueDate;
         }
 
+        // Extract statement date from the statement
+        const statementDate = extractStatementDate(fullText);
+        if (statementDate) {
+            result.statementDate = statementDate;
+        }
+
         // Look for the main section
         const gemVisaPromotionalRegex = /Unexpired Gem Visa promotional transactions/i;
         if (!gemVisaPromotionalRegex.test(fullText)) {
@@ -378,6 +384,28 @@ function extractDueDate(fullText: string): string | null {
         return null;
     } catch (error) {
         console.error('❌ Error extracting due date:', error);
+        return null;
+    }
+}
+
+function extractStatementDate(fullText: string): string | null {
+    try {
+        // Look for "Statement date" followed by a date in DD/MM/YYYY format
+        const statementDateMatch = fullText.match(/Statement date[\s:]*(\d{1,2}\/\d{1,2}\/\d{4})/i);
+        if (statementDateMatch) {
+            const dateStr = statementDateMatch[1];
+            console.log('📅 Found statement date in PDF (NZ timezone):', dateStr);
+            
+            // Convert NZ date to UTC ISO format
+            const utcIsoDate = convertNZDateToUTC(dateStr);
+            console.log('📅 Converted NZ statement date to UTC:', utcIsoDate);
+            return utcIsoDate;
+        }
+        
+        console.log('❌ No statement date found in PDF');
+        return null;
+    } catch (error) {
+        console.error('❌ Error extracting statement date:', error);
         return null;
     }
 }

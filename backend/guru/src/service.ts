@@ -246,7 +246,7 @@ export const parseStatementPreview = async (userId: string, pdfBuffer: Buffer): 
         });
 
         // Generate interim result without applying changes
-        const interimResult = generateInterimResult(existingPurchases, newParsedPurchases);
+        const interimResult = generateInterimResult(existingPurchases, newParsedPurchases, parseResult.statementDate);
         
         const result = {
             ...parseResult,
@@ -266,7 +266,7 @@ export const parseStatementPreview = async (userId: string, pdfBuffer: Buffer): 
     }
 };
 
-function generateInterimResult(existingPurchases: Purchase[], newParsedPurchases: Purchase[]): InterimResult {
+function generateInterimResult(existingPurchases: Purchase[], newParsedPurchases: Purchase[], statementDate?: string): InterimResult {
     const newPurchases: NewPurchase[] = [];
     const updatedPurchases: UpdatedPurchase[] = [];
     const paidOffPurchases: PaidOffPurchase[] = [];
@@ -317,15 +317,35 @@ function generateInterimResult(existingPurchases: Purchase[], newParsedPurchases
         }
     }
     
-    // Find unmatched existing purchases (paid off)
+    // Find unmatched existing purchases (potentially paid off)
     for (const existingPurchase of existingPurchases) {
         if (existingPurchase.id && !matchedExistingIds.has(existingPurchase.id)) {
-            paidOffPurchases.push({
-                id: existingPurchase.id,
-                name: existingPurchase.name,
-                total: existingPurchase.total,
-                remaining: existingPurchase.remaining
-            });
+            // Skip if already paid off (remaining = 0) - no need to show in paid off list again
+            if (existingPurchase.remaining === 0) {
+                continue;
+            }
+            
+            // Only mark as paid off if the purchase started BEFORE the statement date
+            let shouldMarkAsPaidOff = true;
+            
+            if (statementDate) {
+                const purchaseStartDate = new Date(existingPurchase.startDate);
+                const statementDateObj = new Date(statementDate);
+                
+                if (purchaseStartDate > statementDateObj) {
+                    shouldMarkAsPaidOff = false;
+                }
+            }
+            
+            if (shouldMarkAsPaidOff) {
+                paidOffPurchases.push({
+                    id: existingPurchase.id,
+                    name: existingPurchase.name,
+                    total: existingPurchase.total,
+                    remaining: existingPurchase.remaining
+                });
+            }
+            // If not paid off, we don't include it in any of the result arrays (no change)
         }
     }
     
@@ -378,7 +398,7 @@ export const parseAndUpsertStatementPurchases = async (userId: string, pdfBuffer
         });
 
         // Perform UPSERT logic
-        const upsertResult = performUpsert(existingPurchases, newParsedPurchases);
+        const upsertResult = performUpsert(existingPurchases, newParsedPurchases, parseResult.statementDate);
         
         // Save the updated purchases
         await savePurchases(userId, upsertResult.finalPurchases);
@@ -414,7 +434,7 @@ export const parseAndUpsertStatementPurchases = async (userId: string, pdfBuffer
     }
 };
 
-function performUpsert(existingPurchases: Purchase[], newParsedPurchases: Purchase[]): {
+function performUpsert(existingPurchases: Purchase[], newParsedPurchases: Purchase[], statementDate?: string): {
     finalPurchases: Purchase[];
     summary: UpsertSummary;
 } {
@@ -458,22 +478,51 @@ function performUpsert(existingPurchases: Purchase[], newParsedPurchases: Purcha
         }
     }
     
-    // Handle existing purchases that weren't matched (potentially paid off)
+    // Handle existing purchases that weren't matched
     for (const existingPurchase of existingPurchases) {
         if (existingPurchase.id && !matchedExistingIds.has(existingPurchase.id)) {
-            // Mark as potentially paid off (remaining = 0) but keep in the list
-            const paidOffPurchase = {
-                ...existingPurchase,
-                remaining: 0
-            };
-            finalPurchases.push(paidOffPurchase);
-            summary.potentiallyPaidOff++;
-            summary.potentiallyPaidOffPurchases.push({
-                id: existingPurchase.id,
-                name: existingPurchase.name,
-                total: existingPurchase.total
-            });
-            console.log(`💰 Potentially paid off: ${existingPurchase.name} - was $${(existingPurchase.remaining/100).toFixed(2)}`);
+            // If already paid off (remaining = 0), just keep it as is without any changes or logging
+            if (existingPurchase.remaining === 0) {
+                finalPurchases.push(existingPurchase);
+                console.log(`📝 Keeping paid off purchase unchanged: ${existingPurchase.name}`);
+                continue;
+            }
+            
+            // Only mark as paid off if the purchase started BEFORE the statement date
+            // If it started after the statement date, it wasn't included in this statement period
+            let shouldMarkAsPaidOff = true;
+            
+            if (statementDate) {
+                const purchaseStartDate = new Date(existingPurchase.startDate);
+                const statementDateObj = new Date(statementDate);
+                
+                if (purchaseStartDate > statementDateObj) {
+                    shouldMarkAsPaidOff = false;
+                    console.log(`🕐 Purchase ${existingPurchase.name} started after statement date (${existingPurchase.startDate} > ${statementDate}) - keeping as is`);
+                } else {
+                    console.log(`✅ Purchase ${existingPurchase.name} started before statement date (${existingPurchase.startDate} <= ${statementDate}) - marking as paid off`);
+                }
+            }
+            
+            if (shouldMarkAsPaidOff) {
+                // Mark as potentially paid off (remaining = 0) but keep in the list
+                const paidOffPurchase = {
+                    ...existingPurchase,
+                    remaining: 0
+                };
+                finalPurchases.push(paidOffPurchase);
+                summary.potentiallyPaidOff++;
+                summary.potentiallyPaidOffPurchases.push({
+                    id: existingPurchase.id,
+                    name: existingPurchase.name,
+                    total: existingPurchase.total
+                });
+                console.log(`💰 Potentially paid off: ${existingPurchase.name} - was $${(existingPurchase.remaining/100).toFixed(2)}`);
+            } else {
+                // Keep the purchase unchanged - it wasn't included in this statement period
+                finalPurchases.push(existingPurchase);
+                console.log(`📋 Keeping unchanged: ${existingPurchase.name} - not in statement period`);
+            }
         }
     }
     

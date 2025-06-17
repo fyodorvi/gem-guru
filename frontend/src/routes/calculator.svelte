@@ -12,7 +12,9 @@
         TableBodyRow, 
         TableBodyCell,
         Label,
-        Alert
+        Alert,
+        Select,
+        Checkbox
     } from 'flowbite-svelte';
     import { PlusOutline, DotsHorizontalOutline, CalendarMonthOutline, EditOutline, CheckCircleOutline, ExclamationCircleOutline, PenOutline } from 'flowbite-svelte-icons';
     import {type CalculatedPurchase, loadCalculation, deletePurchase, setProfile} from "../services/api";
@@ -31,6 +33,67 @@
     let paymentDueDate = '';
     let showDueDateEditor = false;
     let tempDueDate = '';
+
+    // Sorting and filtering state
+    let sortBy = 'startDate';
+    let sortDirection = 'desc'; // desc for most recent first by default
+    let showPaidOff = false;
+
+    // Sorting options for dropdown
+    const sortOptions = [
+        { value: 'startDate_desc', name: 'Start Date (Newest)' },
+        { value: 'startDate_asc', name: 'Start Date (Oldest)' },
+        { value: 'expiryDate_desc', name: 'End Date (Latest)' },
+        { value: 'expiryDate_asc', name: 'End Date (Earliest)' },
+        { value: 'total_desc', name: 'Total (Highest)' },
+        { value: 'total_asc', name: 'Total (Lowest)' },
+        { value: 'remaining_desc', name: 'Remaining (Highest)' },
+        { value: 'remaining_asc', name: 'Remaining (Lowest)' },
+        { value: 'name_asc', name: 'Name (A-Z)' },
+        { value: 'name_desc', name: 'Name (Z-A)' }
+    ];
+    
+    let selectedSortOption = 'startDate_desc'; // Default to newest first
+
+    // Function to sort purchases
+    const sortPurchases = (purchases, sortKey, direction) => {
+        return purchases.slice().sort((a, b) => {
+            let aVal, bVal;
+            
+            switch (sortKey) {
+                case 'startDate':
+                case 'expiryDate':
+                    aVal = new Date(a[sortKey]);
+                    bVal = new Date(b[sortKey]);
+                    break;
+                case 'name':
+                    aVal = a[sortKey].toLowerCase();
+                    bVal = b[sortKey].toLowerCase();
+                    break;
+                case 'total':
+                case 'remaining':
+                    aVal = a[sortKey];
+                    bVal = b[sortKey];
+                    break;
+                default:
+                    return 0;
+            }
+            
+            if (direction === 'asc') {
+                return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+            } else {
+                return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
+            }
+        });
+    };
+
+    // Handle sort option change
+    const handleSortChange = (event) => {
+        const [key, dir] = event.target.value.split('_');
+        sortBy = key;
+        sortDirection = dir;
+        selectedSortOption = event.target.value;
+    };
 
     const reloadCalculation = async() => {
         const updatedCalculation = await loadCalculation();
@@ -97,13 +160,6 @@
         tempDueDate = paymentDueDate; // Reset temp value
     };
 
-    // Sort purchases: paid-off ($0 remaining) at top
-    $: sortedPurchases = $calculation.purchases.slice().sort((a, b) => {
-        if (a.remaining === 0 && b.remaining !== 0) return -1;
-        if (a.remaining !== 0 && b.remaining === 0) return 1;
-        return 0;
-    });
-
     // Check if purchase is paid off
     const isPaidOff = (purchase: CalculatedPurchase) => purchase.remaining === 0;
     
@@ -118,13 +174,26 @@
     // Check if due date is in the past
     $: isDueDateInPast = paymentDueDate && new Date(paymentDueDate) < new Date(new Date().toDateString());
 
+    // Apply sorting and filtering
+    $: sortedPurchases = (() => {
+        let filtered = $calculation.purchases;
+        
+        // Apply paid off filter
+        if (!showPaidOff) {
+            filtered = filtered.filter(p => !isPaidOff(p));
+        }
+        
+        // Apply sorting
+        return sortPurchases(filtered, sortBy, sortDirection);
+    })();
+
     // Split purchases into current and future purchases
     $: currentPurchases = sortedPurchases.filter(p => !isFuturePurchase(p));
     $: futurePurchases = sortedPurchases.filter(p => isFuturePurchase(p));
     
-    // Calculate totals excluding future purchases
-    $: adjustedTotalNextPayment = currentPurchases.reduce((sum, p) => sum + (isPaidOff(p) ? 0 : p.nextPayment), 0);
-    $: adjustedTotalRemaining = currentPurchases.reduce((sum, p) => sum + p.remaining, 0);
+    // Calculate totals excluding future purchases (use all purchases for totals, not just filtered ones)
+    $: adjustedTotalNextPayment = $calculation.purchases.filter(p => !isFuturePurchase(p)).reduce((sum, p) => sum + (isPaidOff(p) ? 0 : p.nextPayment), 0);
+    $: adjustedTotalRemaining = $calculation.purchases.filter(p => !isFuturePurchase(p)).reduce((sum, p) => sum + p.remaining, 0);
 </script>
 
 {#if !loading}
@@ -165,11 +234,11 @@
 
                 <!-- Future Purchases Warning -->
                 {#if futurePurchases.length > 0}
-                    <Alert color="blue" class="mb-5 p-0">
-                        <ExclamationCircleOutline slot="icon" class="w-4 h-4" />
-                        <span class="font-medium">{futurePurchases.length} purchase{futurePurchases.length > 1 ? 's' : ''} not included in payment calculation</span><br />
-                        <span class="text-sm">These purchases started after your payment due date and will be included in future payment cycles.</span>
-                    </Alert>
+                                         <Alert color="blue" class="mb-5 p-0">
+                         <ExclamationCircleOutline slot="icon" class="w-4 h-4" />
+                         <span class="font-medium">{futurePurchases.length} purchase{futurePurchases.length > 1 ? 's' : ''} not included in payment calculation</span><br />
+                         <span class="text-sm">{futurePurchases.length > 1 ? 'These purchases' : 'This purchase'} started after your payment due date and will be included in future payment cycles.</span>
+                     </Alert>
                 {/if}
 
                 <!-- Payment Amount with Clickable Date -->
@@ -207,8 +276,37 @@
         </div>
 
         <!-- Purchases Section -->
-        {#if sortedPurchases.length > 0}
+        {#if $calculation.purchases.length > 0}
         <Heading tag="h5" class="font-normal mb-5">My Purchases <Button on:click={() => addPurchase()} class="inline-block ml-2 p-2"><PlusOutline /></Button></Heading>
+        
+        <!-- Sorting and Filtering Controls -->
+        <div class="mb-5 flex flex-wrap gap-4 items-center">
+            <div class="flex items-center gap-2">
+                <Label for="sort-select" class="text-sm font-medium">Sort by:</Label>
+                <Select 
+                    id="sort-select"
+                    bind:value={selectedSortOption}
+                    on:change={handleSortChange}
+                    class="w-48"
+                    size="sm"
+                >
+                    {#each sortOptions as option}
+                        <option value={option.value}>{option.name}</option>
+                    {/each}
+                </Select>
+            </div>
+            
+            <div class="flex items-center gap-2">
+                <Checkbox 
+                    bind:checked={showPaidOff}
+                    class="text-primary-600"
+                >
+                    Show Paid Off
+                </Checkbox>
+            </div>
+                 </div>
+        
+        {#if sortedPurchases.length > 0}
         <ul>
             {#each sortedPurchases as purchase}
                 <li class="p-3 border-b border-l border-r first:border-t first:rounded-t-lg last:rounded-b-lg border-slate-300 sm:flex md:justify-between {isPaidOff(purchase) ? 'bg-green-50 dark:bg-green-900/20' : ''}">
@@ -233,9 +331,9 @@
                         </div>
                         <div class="mt-4"><CalendarMonthOutline class="inline-block" /> {new Date(purchase.expiryDate).toLocaleDateString()}</div>
                     </div>
-                        <div class="sm:ml-auto w-44 sm:mt-10 mt-4">
+                        <div class="sm:ml-auto sm:mt-10 mt-4">
                             {#if isPaidOff(purchase)}
-                                <div class="text-right pr-10">
+                                <div class="text-right">
                                 <Button
                                         on:click={() => deletePaidOffPurchase(purchase)}
                                         disabled={deleting === purchase.id}
@@ -253,17 +351,32 @@
                                 <div class="text-center">
                                     <Alert color="yellow" class="p-2 text-xs bg-[#2557D6]">
                                         <ExclamationCircleOutline slot="icon" class="w-3 h-3" />
-                                        <span class="font-medium">Payment in the future</span>
+                                        <span class="font-medium">No payment needed yet</span>
                                     </Alert>
                                 </div>
                             {:else}
-                                Payments: {purchase.paymentsDone} out of {purchase.paymentsTotal}
-                                <Progressbar progress={Math.floor(purchase.paymentsDone/purchase.paymentsTotal*100)} class="w-[90%] mt-2" />
+                                <div class="text-left">
+                                {#if purchase.paymentsTotal - purchase.paymentsDone === 1}
+                                    1 payment left
+                                {:else}
+                                    {purchase.paymentsTotal - purchase.paymentsDone} payments left
+                                {/if}
+                                <Progressbar progress={Math.floor(purchase.paymentsDone/purchase.paymentsTotal*100)} class="w-full mt-2 inline-block" />
+                                </div>
                             {/if}
                         </div>
                 </li>
             {/each}
         </ul>
+        {:else}
+        <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+            {#if !showPaidOff}
+                <p>No active purchases found. Check "Show Paid Off" to see all purchases.</p>
+            {:else}
+                <p>No purchases found.</p>
+            {/if}
+        </div>
+        {/if}
         {/if}
         
         <!-- Payment Breakdown Table -->
