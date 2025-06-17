@@ -5,6 +5,7 @@
     import type {ApexOptions} from "apexcharts";
     import {toCurrencyDisplay} from "../services/format";
     import { calculation } from '../services/store';
+    import Currency from "../components/display/Currency.svelte";
 
     let loading = true;
     let projection: any;
@@ -35,7 +36,8 @@
             },
             dataLabels: {
                 formatter: (value: number) => {
-                    return toCurrencyDisplay(value);
+                    const roundedValue = Math.round(value / 100) * 100;
+                    return '$' + Math.round(roundedValue / 100);
                 },
                 enabled: true
             },
@@ -48,14 +50,15 @@
                 strokeDashArray: 4,
                 padding: {
                     left: 2,
-                    right: 2,
-                    top: 10
+                    right: 30,
+                    top: 10,
+                    bottom: 20
                 }
             },
             series: [
                 {
                     name: 'Payment',
-                    data: projection.months.map((month) => month.amountToPay),
+                    data: projection.months.map((month) => Math.round(month.amountToPay / 100) * 100),
                     color: '#1A56DB'
                 },
             ],
@@ -69,7 +72,9 @@
                     style: {
                         fontFamily: 'Inter, sans-serif',
                         cssClass: 'text-xs font-normal fill-gray-500 dark:fill-gray-400'
-                    }
+                    },
+                    rotate: -45,
+                    rotateAlways: true
                 },
                 axisBorder: {
                     show: false
@@ -81,14 +86,22 @@
             yaxis: {
                 labels: {
                     formatter: (value) => {
-                        return toCurrencyDisplay(value);
+                        const roundedValue = Math.round(value / 100) * 100;
+                        return '$' + Math.round(roundedValue / 100);
                     },
                     style: {
                         fontFamily: 'Inter, sans-serif',
                         cssClass: 'text-xs font-normal fill-gray-500 dark:fill-gray-400'
-                    }
+                    },
+                    offsetX: -8
                 },
-                show: true
+                show: true,
+                min: 0,
+                max: function(max) {
+                    // Add breathing room by adding 10% to the max value
+                    return Math.round(max * 1.1);
+                },
+                tickAmount: 5
             }
         };
 
@@ -113,7 +126,7 @@
                     {#each projection.months as month}
                     <TableBodyRow>
                         <TableBodyCell>{month.date}</TableBodyCell>
-                        <TableBodyCell>{toCurrencyDisplay(month.amountToPay)}</TableBodyCell>
+                        <TableBodyCell><Currency value={month.amountToPay} /></TableBodyCell>
                     </TableBodyRow>
                     {/each}
                 </TableBody>

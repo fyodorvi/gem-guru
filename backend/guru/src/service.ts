@@ -58,14 +58,23 @@ const _calculateItemRepayment = (item: Purchase, nextPaymentDate: DateTime): num
     const expiryDate = DateTime.fromISO(item.expiryDate);
     const paymentsLeft = _getPaymentsLeft(nextPaymentDate, expiryDate);
 
-    if (item.hasMinimumPayment && minPayment !== undefined) {
-        return minPayment;
+    // Calculate the regular equal payment (same logic as non-minimum payment purchases)
+    let equalPayment: number;
+    if (paymentsLeft === 0) {
+        equalPayment = remaining;
     } else {
-        if (paymentsLeft === 0) {
-            return remaining;
-        } else {
-            return Math.ceil(remaining / paymentsLeft);
-        }
+        equalPayment = Math.ceil(remaining / paymentsLeft);
+    }
+
+    if (item.hasMinimumPayment && minPayment !== undefined) {
+        // Compare minimum payment with equal payment and use the higher amount
+        // This ensures minimum payment purchases are paid off within the interest-free period
+        const requiredPayment = Math.max(minPayment, equalPayment);
+        
+        // Cap the payment at the remaining balance to prevent negative balances
+        return Math.min(requiredPayment, remaining);
+    } else {
+        return equalPayment;
     }
 };
 

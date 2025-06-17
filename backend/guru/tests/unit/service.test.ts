@@ -105,6 +105,99 @@ describe('Service', () => {
                 }]
             } as Calculation);
         });
+
+        it('should limit minimum payment to remaining balance', async () => {
+            const purchases: Purchase[] = [{
+                total: 1000,
+                remaining: 150, // Small remaining balance
+                startDate: '2024-01-01',
+                expiryDate: '2024-04-01',
+                hasMinimumPayment: true,
+                minimumPayment: 300, // Minimum payment larger than remaining
+                name: 'test'
+            }]
+            const calculation = await calculate('any', purchases);
+
+            expect(calculation).toEqual({
+                totalRemaining: 150,
+                totalNextPayment: 150, // Should be remaining (150), not minimum payment (300)
+                nextPaymentDate: '2024-01-15T13:00:00.000+13:00',
+                purchases: [{
+                    name: 'test',
+                    total: 1000,
+                    remaining: 150,
+                    nextPayment: 150, // Should be remaining (150), not minimum payment (300)
+                    paymentsTotal: 3,
+                    paymentsDone: 0,
+                    startDate: '2024-01-01',
+                    expiryDate: '2024-04-01',
+                    hasMinimumPayment: true,
+                    minimumPayment: 300
+                }]
+            } as Calculation);
+        });
+
+        it('should use minimum payment when it is higher than equal payment', async () => {
+            const purchases: Purchase[] = [{
+                total: 1000,
+                remaining: 300, // 300 remaining over 3 payments = 100 each
+                startDate: '2024-01-01',
+                expiryDate: '2024-04-01',
+                hasMinimumPayment: true,
+                minimumPayment: 150, // Minimum payment higher than equal payment (100)
+                name: 'test'
+            }]
+            const calculation = await calculate('any', purchases);
+
+            expect(calculation).toEqual({
+                totalRemaining: 300,
+                totalNextPayment: 150, // Should be minimum payment (150) since it's higher than equal payment (100)
+                nextPaymentDate: '2024-01-15T13:00:00.000+13:00',
+                purchases: [{
+                    name: 'test',
+                    total: 1000,
+                    remaining: 300,
+                    nextPayment: 150, // Should be minimum payment (150)
+                    paymentsTotal: 3,
+                    paymentsDone: 0,
+                    startDate: '2024-01-01',
+                    expiryDate: '2024-04-01',
+                    hasMinimumPayment: true,
+                    minimumPayment: 150
+                }]
+            } as Calculation);
+        });
+
+        it('should use equal payment when it is higher than minimum payment', async () => {
+            const purchases: Purchase[] = [{
+                total: 1000,
+                remaining: 600, // 600 remaining over 3 payments = 200 each
+                startDate: '2024-01-01',
+                expiryDate: '2024-04-01',
+                hasMinimumPayment: true,
+                minimumPayment: 100, // Minimum payment lower than equal payment (200)
+                name: 'test'
+            }]
+            const calculation = await calculate('any', purchases);
+
+            expect(calculation).toEqual({
+                totalRemaining: 600,
+                totalNextPayment: 200, // Should be equal payment (200) since it's higher than minimum payment (100)
+                nextPaymentDate: '2024-01-15T13:00:00.000+13:00',
+                purchases: [{
+                    name: 'test',
+                    total: 1000,
+                    remaining: 600,
+                    nextPayment: 200, // Should be equal payment (200)
+                    paymentsTotal: 3,
+                    paymentsDone: 0,
+                    startDate: '2024-01-01',
+                    expiryDate: '2024-04-01',
+                    hasMinimumPayment: true,
+                    minimumPayment: 100
+                }]
+            } as Calculation);
+        });
     });
 
     describe('calculateProjection', () => {

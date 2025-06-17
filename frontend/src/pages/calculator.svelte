@@ -405,7 +405,7 @@
                 <li class="p-3 border-b border-l border-r first:border-t first:rounded-t-lg last:rounded-b-lg border-slate-300 sm:flex md:justify-between {isPaidOff(purchase) ? 'bg-green-50 dark:bg-green-900/20' : ''}">
                     <div>
                         <div on:click={() => editPurchase(purchase)} aria-label="Edit" class="cursor-pointer">
-                            <Heading tag="h6" class="flex items-center gap-2">
+                            <Heading tag="h6" class="flex items-center gap-2 font-normal">
                                 {purchase.name} 
                                 {#if isPaidOff(purchase)}
                                     <CheckCircleOutline class="text-green-600 dark:text-green-400" />
@@ -415,7 +415,7 @@
                                 {/if}
                             </Heading>
                         </div>
-                        <div class="mt-3">Total: <span class="font-bold"><Currency value={purchase.total} /></span></div>
+                        <div class="mt-3">Total: <span><Currency value={purchase.total} /></span></div>
                         <div class="mt-1">
                             Remaining:
                             {#if !isPaidOff(purchase)}
@@ -424,7 +424,7 @@
                                 <Currency value={purchase.remaining} />
                             {/if}
                         </div>
-                        <div class="mt-4"><CalendarMonthOutline class="inline-block" /> {toDateDisplay(purchase.startDate)} - {toDateDisplay(purchase.expiryDate)}</div>
+                        <div class="mt-4"><CalendarMonthOutline class="inline-block mt-[-5px]" /> {toDateDisplay(purchase.startDate)} - {toDateDisplay(purchase.expiryDate)}</div>
                     </div>
                         <div class="sm:ml-auto sm:mt-10 mt-4">
                             {#if isPaidOff(purchase)}
