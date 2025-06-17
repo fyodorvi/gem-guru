@@ -47,6 +47,8 @@ export interface StatementParseResult {
     error?: string;
     parsedPurchases: ParsedPurchase[];
     extractedSections: string[];
+    dueDate?: string; // ISO date string extracted from the statement
+    currentDueDate?: string; // Current due date from user profile for comparison
     upsertSummary?: UpsertSummary;
     interimResult?: InterimResult;
 } 

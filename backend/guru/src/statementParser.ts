@@ -16,6 +16,12 @@ export async function parseStatement(pdfBuffer: Buffer): Promise<StatementParseR
         // Add the full text for debugging
         result.extractedSections.push(fullText);
 
+        // Extract due date from the statement
+        const dueDate = extractDueDate(fullText);
+        if (dueDate) {
+            result.dueDate = dueDate;
+        }
+
         // Look for the main section
         const gemVisaPromotionalRegex = /Unexpired Gem Visa promotional transactions/i;
         if (!gemVisaPromotionalRegex.test(fullText)) {
@@ -316,6 +322,64 @@ function parsePaymentRequirementsFromContext(currentLine: string, fullText: stri
     
     console.log('📝 No specific payment requirements found for this purchase');
     return result;
+}
+
+function convertNZDateToUTC(nzDateStr: string): string {
+    try {
+        // Parse DD/MM/YYYY format as NZ date
+        const parts = nzDateStr.split('/');
+        if (parts.length !== 3) {
+            throw new Error(`Invalid date format: ${nzDateStr}`);
+        }
+        
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10);
+        const year = parseInt(parts[2], 10);
+        
+        if (isNaN(day) || isNaN(month) || isNaN(year)) {
+            throw new Error(`Invalid date components: ${nzDateStr}`);
+        }
+        
+        // To match the UI's date format, we need to create a date that represents
+        // the same calendar day in UTC. The UI stores dates as start of day UTC.
+        // So for NZ date "15/06/2025", we want to store as "2025-06-15T00:00:00.000Z"
+        // regardless of timezone conversion.
+        
+        // Create the date directly in UTC format to match UI behavior
+        const utcDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+        
+        console.log(`📅 NZ Date: ${nzDateStr} -> UTC (calendar day match): ${utcDate.toISOString()}`);
+        
+        return utcDate.toISOString();
+    } catch (error) {
+        console.error('❌ Error converting NZ date to UTC:', error);
+        // Fallback to basic conversion if timezone conversion fails
+        return normalizeDate(nzDateStr) + 'T00:00:00.000Z';
+    }
+}
+
+
+
+function extractDueDate(fullText: string): string | null {
+    try {
+        // Look for "Due date:" followed by a date in DD/MM/YYYY format
+        const dueDateMatch = fullText.match(/Due date:\s*(\d{1,2}\/\d{1,2}\/\d{4})/i);
+        if (dueDateMatch) {
+            const dateStr = dueDateMatch[1];
+            console.log('📅 Found due date in statement (NZ timezone):', dateStr);
+            
+            // Convert NZ date to UTC ISO format
+            const utcIsoDate = convertNZDateToUTC(dateStr);
+            console.log('📅 Converted NZ due date to UTC:', utcIsoDate);
+            return utcIsoDate;
+        }
+        
+        console.log('❌ No due date found in statement');
+        return null;
+    } catch (error) {
+        console.error('❌ Error extracting due date:', error);
+        return null;
+    }
 }
 
 function normalizeDate(dateStr: string): string {

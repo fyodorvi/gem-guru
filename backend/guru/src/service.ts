@@ -206,8 +206,9 @@ export const parseStatementPreview = async (userId: string, pdfBuffer: Buffer): 
     }
     
     try {
-        // Get existing purchases
+        // Get existing purchases and profile
         const existingPurchases = await getPurchases(userId);
+        const currentProfile = await getProfileSettings(userId);
         
         // Convert parsed purchases to Purchase objects
         const newParsedPurchases: Purchase[] = parseResult.parsedPurchases.map((parsed: ParsedPurchase) => {
@@ -240,6 +241,7 @@ export const parseStatementPreview = async (userId: string, pdfBuffer: Buffer): 
         
         const result = {
             ...parseResult,
+            currentDueDate: currentProfile.paymentDueDate,
             interimResult
         };
         
@@ -371,6 +373,18 @@ export const parseAndUpsertStatementPurchases = async (userId: string, pdfBuffer
         
         // Save the updated purchases
         await savePurchases(userId, upsertResult.finalPurchases);
+        
+        // Update due date if extracted from statement
+        if (parseResult.dueDate) {
+            const currentProfile = await getProfileSettings(userId);
+            
+            // parseResult.dueDate is already a full ISO datetime string in UTC from the parser
+            await setProfileSettings(userId, {
+                ...currentProfile,
+                paymentDueDate: parseResult.dueDate
+            });
+            console.log('📅 Updated payment due date to UTC:', parseResult.dueDate);
+        }
         
         // Calculate new totals
         const calculation = await calculate(userId, upsertResult.finalPurchases);

@@ -148,7 +148,7 @@
             {:else}
                 <!-- Payment Amount with Clickable Date -->
                 <div class="text-xl dark:text-white">
-                    Amount to pay on 
+                    Amount to pay by
                     <button 
                         type="button"
                         on:click={showDueDateSelector}

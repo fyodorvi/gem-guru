@@ -92,6 +92,35 @@
             fileInput.value = '';
         }
     };
+
+    // Function to detect if there are any actual changes
+    const hasChanges = (result: StatementParseResult): boolean => {
+        if (!result.interimResult) return false;
+        
+        const { newPurchases, updatedPurchases, paidOffPurchases } = result.interimResult;
+        
+        // Check for new purchases
+        if (newPurchases.length > 0) return true;
+        
+        // Check for paid off purchases
+        if (paidOffPurchases.length > 0) return true;
+        
+        // Check for actual changes in updated purchases (not just same values)
+        const hasActualUpdates = updatedPurchases.some(purchase => 
+            purchase.oldRemaining !== purchase.newRemaining
+        );
+        if (hasActualUpdates) return true;
+        
+        // Check for due date changes
+        if (result.dueDate && result.currentDueDate) {
+            // Compare dates but ignore time - extract just the date part (YYYY-MM-DD)
+            const newDueDate = new Date(result.dueDate).toISOString().split('T')[0];
+            const currentDueDate = new Date(result.currentDueDate).toISOString().split('T')[0];
+            if (newDueDate !== currentDueDate) return true;
+        }
+        
+        return false;
+    };
 </script>
 
 <div class="w-full">
@@ -160,11 +189,29 @@
 
     {#if parseResult}
         {#if parseResult.success && parseResult.interimResult}
-            <!-- Interim Results Display -->
-            <Alert color="blue" class="mb-6 w-full">
-                <CheckCircleOutline slot="icon" class="w-4 h-4" />
-                <span class="font-medium">Preview Ready!</span> Review the changes below and click Confirm to apply them.
-            </Alert>
+            <!-- Check if there are any changes -->
+            {#if !hasChanges(parseResult)}
+                <!-- No Changes Detected -->
+                <Alert color="yellow" class="mb-6 w-full">
+                    <CheckCircleOutline slot="icon" class="w-4 h-4" />
+                    <span class="font-medium">No Changes Detected</span> - Your purchases and due date are already up to date with this statement.
+                </Alert>
+            {:else}
+                <!-- Interim Results Display -->
+                <Alert color="blue" class="mb-6 w-full">
+                    <CheckCircleOutline slot="icon" class="w-4 h-4" />
+                    <span class="font-medium">Preview Ready!</span> Review the changes below and click Confirm to apply them.
+                </Alert>
+            {/if}
+
+            <!-- Due Date Display -->
+            {#if parseResult.dueDate && hasChanges(parseResult)}
+                <Alert color="green" class="mb-6 w-full">
+                    <CheckCircleOutline slot="icon" class="w-4 h-4" />
+                    <span class="font-medium">Next Payment Due Date:</span> 
+                    <FormattedDate value={parseResult.dueDate} />
+                </Alert>
+            {/if}
 
             <!-- New Purchases -->
             {#if parseResult.interimResult.newPurchases.length > 0}
@@ -199,7 +246,7 @@
             {/if}
 
             <!-- Updated Purchases -->
-            {#if parseResult.interimResult.updatedPurchases.length > 0}
+            {#if parseResult.interimResult.updatedPurchases.length > 0 && hasChanges(parseResult)}
                 <Card class="mb-6 w-full" style="max-width: none;">
                     <div class="flex items-center gap-2 mb-4">
                         <Heading tag="h6">Updated Purchases</Heading>
@@ -265,32 +312,42 @@
                 </Card>
             {/if}
 
-            <!-- Confirmation Button -->
-            <Card class="w-full" style="max-width: none;">
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div>
-                        <Heading tag="h6" class="mb-2">Ready to Apply Changes?</Heading>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">
-                            This will update your purchase data with the changes shown above.
-                        </p>
+            <!-- Confirmation Button - Only show if there are changes -->
+            {#if hasChanges(parseResult)}
+                <Card class="w-full" style="max-width: none;">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div>
+                            <Heading tag="h6" class="mb-2">Ready to Apply Changes?</Heading>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">
+                                {#if parseResult.interimResult.newPurchases.length > 0 || parseResult.interimResult.updatedPurchases.some(p => p.oldRemaining !== p.newRemaining) || parseResult.interimResult.paidOffPurchases.length > 0}
+                                    This will update your purchases with the changes shown above.
+                                {/if}
+                                {#if parseResult.dueDate && parseResult.currentDueDate && new Date(parseResult.dueDate).toISOString().split('T')[0] !== new Date(parseResult.currentDueDate).toISOString().split('T')[0]}
+                                    {#if parseResult.interimResult.newPurchases.length > 0 || parseResult.interimResult.updatedPurchases.some(p => p.oldRemaining !== p.newRemaining) || parseResult.interimResult.paidOffPurchases.length > 0}
+                                        <br>
+                                    {/if}
+                                    The due date will also be updated to <FormattedDate value={parseResult.dueDate} />.
+                                {/if}
+                            </p>
+                        </div>
+                        <Button 
+                            on:click={handleConfirm}
+                            disabled={confirming}
+                            color="green"
+                            size="lg"
+                            class="sm:flex-shrink-0"
+                        >
+                            {#if confirming}
+                                <Spinner class="me-3" size="4" color="white" />
+                                Confirming...
+                            {:else}
+                                <CheckCircleOutline class="me-2" />
+                                Confirm Changes
+                            {/if}
+                        </Button>
                     </div>
-                    <Button 
-                        on:click={handleConfirm}
-                        disabled={confirming}
-                        color="green"
-                        size="lg"
-                        class="sm:flex-shrink-0"
-                    >
-                        {#if confirming}
-                            <Spinner class="me-3" size="4" color="white" />
-                            Confirming...
-                        {:else}
-                            <CheckCircleOutline class="me-2" />
-                            Confirm Changes
-                        {/if}
-                    </Button>
-                </div>
-            </Card>
+                </Card>
+            {/if}
 
         {:else if parseResult.success && parseResult.calculation}
             <!-- Changes Applied Successfully -->
