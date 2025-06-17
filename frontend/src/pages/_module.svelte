@@ -3,11 +3,11 @@
     import {useAuth0} from "../services/auth0";
     import {onMount} from 'svelte';
 
-    import { Spinner } from 'flowbite-svelte';
+    import {Button, Spinner} from 'flowbite-svelte';
     import { Navbar, NavBrand, NavLi, NavUl, NavHamburger, Avatar, Dropdown, DropdownItem, DropdownHeader } from 'flowbite-svelte';
 
     import { UserSolid } from 'flowbite-svelte-icons';
-    let { isLoading, isAuthenticated, logout, initializeAuth0, user } = useAuth0;
+    let { isLoading, isAuthenticated, logout, initializeAuth0, user, login} = useAuth0;
 
     // Add dropdown state management
     let dropdownOpen = false;
@@ -69,38 +69,39 @@
         </div>
     </div>
 {:else}
-    {#if $isAuthenticated}
+
         <div class="w-full max-w-[900px] mx-auto">
         <Navbar let:toggle>
             <NavBrand href="/calculator">
                 <!--<img src="/images/flowbite-svelte-icon-logo.svg" class="me-3 h-6 sm:h-9" alt="Flowbite Logo" />-->
                 <span class="self-center whitespace-nowrap text-xl font-normal dark:text-white font-serif">Gem Guru</span>
             </NavBrand>
-            <div class="flex items-center md:order-2">
-                <Avatar id="avatar-menu" class="cursor-pointer dark:bg-transparent" on:click={() => dropdownOpen = !dropdownOpen}>
-                    <UserSolid class="w-10 h-10" />
-                </Avatar>
-                <NavHamburger class1="w-full md:flex md:w-auto md:order-1" />
-            </div>
-            <Dropdown placement="bottom" triggeredBy="#avatar-menu" bind:open={dropdownOpen}>
-                <DropdownHeader>
-                    <span class="block truncate text-sm font-medium">{$user.email}</span>
-                </DropdownHeader>
-                <!-- <DropdownItem on:click={() => handleDropdownItemClick(handleProfileClick)}>Profile</DropdownItem> -->
-                <DropdownItem on:click={() => handleDropdownItemClick(() => logout({ logoutParams: {returnTo: window.location.origin,}}))}>Sign out</DropdownItem>
-            </Dropdown>
-            <NavUl {activeUrl}>
-                <NavLi class="cursor-pointer" activeClass="text-white bg-primary-700 md:bg-transparent md:text-primary-700" href="/calculator" on:click={() => handleMobileNavClick(toggle, '/calculator')}>Calculator</NavLi>
-                <NavLi class="cursor-pointer" activeClass="text-white bg-primary-700 md:bg-transparent md:text-primary-700" href="/projection" on:click={() => handleMobileNavClick(toggle, '/projection')}>Projection</NavLi>
-                <NavLi class="cursor-pointer" activeClass="text-white bg-primary-700 md:bg-transparent md:text-primary-700" href="/statement" on:click={() => handleMobileNavClick(toggle, '/statement')}>Statement</NavLi>
-                <NavLi class="cursor-pointer" activeClass="text-white bg-primary-700 md:bg-transparent md:text-primary-700" href="/about" on:click={() => handleMobileNavClick(toggle, '/about')}>About</NavLi>
-            </NavUl>
+            {#if $isAuthenticated}
+                <div class="flex items-center md:order-2">
+                    <Avatar id="avatar-menu" class="cursor-pointer dark:bg-transparent" on:click={() => dropdownOpen = !dropdownOpen}>
+                        <UserSolid class="w-10 h-10" />
+                    </Avatar>
+                    <NavHamburger class1="w-full md:flex md:w-auto md:order-1" />
+                </div>
+                <Dropdown placement="bottom" triggeredBy="#avatar-menu" bind:open={dropdownOpen}>
+                    <DropdownHeader>
+                        <span class="block truncate text-sm font-medium">{$user.email}</span>
+                    </DropdownHeader>
+                    <!-- <DropdownItem on:click={() => handleDropdownItemClick(handleProfileClick)}>Profile</DropdownItem> -->
+                    <DropdownItem on:click={() => handleDropdownItemClick(() => logout({ logoutParams: {returnTo: window.location.origin,}}))}>Sign out</DropdownItem>
+                </Dropdown>
+                <NavUl {activeUrl}>
+                    <NavLi class="cursor-pointer" activeClass="text-white bg-primary-700 md:bg-transparent md:text-primary-700" href="/calculator" on:click={() => handleMobileNavClick(toggle, '/calculator')}>Calculator</NavLi>
+                    <NavLi class="cursor-pointer" activeClass="text-white bg-primary-700 md:bg-transparent md:text-primary-700" href="/projection" on:click={() => handleMobileNavClick(toggle, '/projection')}>Projection</NavLi>
+                    <NavLi class="cursor-pointer" activeClass="text-white bg-primary-700 md:bg-transparent md:text-primary-700" href="/statement" on:click={() => handleMobileNavClick(toggle, '/statement')}>Statement</NavLi>
+                    <NavLi class="cursor-pointer" activeClass="text-white bg-primary-700 md:bg-transparent md:text-primary-700" href="/about" on:click={() => handleMobileNavClick(toggle, '/about')}>About</NavLi>
+                </NavUl>
+            {:else}
+                <Button on:click={() => login()}>Login / Signup</Button>
+            {/if}
         </Navbar>
         </div>
         <div class="p-5 max-w-[900px] mx-auto w-full">
             <slot />
         </div>
-    {:else}
-        <slot />
-    {/if}
 {/if}

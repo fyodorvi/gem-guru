@@ -25,6 +25,7 @@
     "vite": "^5.2.0"
   },
   "dependencies": {
+    "@amplitude/analytics-browser": "^2.17.10",
     "@auth0/auth0-spa-js": "^2.1.3",
     "@canutin/svelte-currency-input": "^0.11.4",
     "@roxi/routify": "2.18.18",

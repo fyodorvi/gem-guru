@@ -6,6 +6,7 @@ import {
     type LogoutOptions, type GetTokenSilentlyOptions
 } from "@auth0/auth0-spa-js";
 import { get, writable, type Writable } from "svelte/store";
+import { amplitudeService } from "./amplitude";
 
 interface Auth0Config {
     onRedirectCallback?: (appState: unknown) => void;
@@ -56,6 +57,13 @@ const _useAuth0 = () => {
             isAuthenticated.set(auth0IsAuthenticated);
             if (auth0IsAuthenticated && auth0User) {
                 user.set(auth0User);
+                
+                // Identify user in Amplitude when authenticated
+                if (auth0User.email) {
+                    amplitudeService.identifyUser(auth0User.email, {
+                        user_id: auth0User.sub
+                    });
+                }
             }
             isLoading.set(false);
         }
@@ -69,8 +77,9 @@ const _useAuth0 = () => {
         get(auth0Client).loginWithRedirect({...options, authorizationParams: { screen_hint: 'signup' }});
     };
 
-
     const logout = (options?: LogoutOptions) => {
+        // Reset Amplitude user when logging out
+        amplitudeService.reset();
         get(auth0Client).logout(options);
     };
 
