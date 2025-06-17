@@ -107,8 +107,24 @@
     // Check if purchase is paid off
     const isPaidOff = (purchase: CalculatedPurchase) => purchase.remaining === 0;
     
+    // Check if purchase is a "future purchase" (started after the due date)
+    const isFuturePurchase = (purchase: CalculatedPurchase) => {
+        if (!paymentDueDate) return false;
+        const startDate = new Date(purchase.startDate);
+        const dueDate = new Date(paymentDueDate);
+        return startDate > dueDate;
+    };
+    
     // Check if due date is in the past
     $: isDueDateInPast = paymentDueDate && new Date(paymentDueDate) < new Date(new Date().toDateString());
+
+    // Split purchases into current and future purchases
+    $: currentPurchases = sortedPurchases.filter(p => !isFuturePurchase(p));
+    $: futurePurchases = sortedPurchases.filter(p => isFuturePurchase(p));
+    
+    // Calculate totals excluding future purchases
+    $: adjustedTotalNextPayment = currentPurchases.reduce((sum, p) => sum + (isPaidOff(p) ? 0 : p.nextPayment), 0);
+    $: adjustedTotalRemaining = currentPurchases.reduce((sum, p) => sum + p.remaining, 0);
 </script>
 
 {#if !loading}
@@ -116,15 +132,7 @@
         <!-- Payment Summary Section - Moved to Top -->
         <Heading tag="h5" class="font-normal mb-5">Payment Summary</Heading>
                 <div class="mb-8 p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border">
-            <!-- Warning for Past Due Date -->
-            {#if isDueDateInPast}
-                <Alert color="yellow" class="mb-4 p-0">
-                    <ExclamationCircleOutline slot="icon" class="w-4 h-4" />
-                    <span class="font-medium">Due date has passed!</span>
-                    <a href="/statement" class="underline font-medium hover:no-underline">Upload</a> a new statement or <span class="underline font-medium hover:no-underline cursor-pointer" on:click={showDueDateSelector}>edit</span> the date.
-                </Alert>
-            {/if}
-            
+
             {#if $calculation.purchases.length === 0}
                 <!-- Empty State -->
                 <div class="text-center py-8">
@@ -146,6 +154,24 @@
                     </div>
                 </div>
             {:else}
+                <!-- Warning for Past Due Date -->
+                {#if isDueDateInPast}
+                    <Alert color="yellow" class="mb-5 p-0">
+                        <ExclamationCircleOutline slot="icon" class="w-4 h-4" />
+                        <span class="font-medium">Due date has passed!</span>
+                        <a href="/statement" class="underline font-medium hover:no-underline">Upload</a> a new statement or <span class="underline font-medium hover:no-underline cursor-pointer" on:click={showDueDateSelector}>edit</span> the date.
+                    </Alert>
+                {/if}
+
+                <!-- Future Purchases Warning -->
+                {#if futurePurchases.length > 0}
+                    <Alert color="blue" class="mb-5 p-0">
+                        <ExclamationCircleOutline slot="icon" class="w-4 h-4" />
+                        <span class="font-medium">{futurePurchases.length} purchase{futurePurchases.length > 1 ? 's' : ''} not included in payment calculation</span><br />
+                        <span class="text-sm">These purchases started after your payment due date and will be included in future payment cycles.</span>
+                    </Alert>
+                {/if}
+
                 <!-- Payment Amount with Clickable Date -->
                 <div class="text-xl dark:text-white">
                     Amount to pay by
@@ -157,7 +183,7 @@
                         <FormattedDate value={$calculation.nextPaymentDate}/>
                     </button>: 
                     <span class="bg-primary-100 dark:bg-primary-900 px-3 py-1 rounded-lg text-white">
-                        <Currency value={$calculation.totalNextPayment} />
+                        <Currency value={adjustedTotalNextPayment} />
                     </span>
                 </div>
                 
@@ -175,7 +201,7 @@
                 {/if}
                 
                 <div class="text-lg mt-2 text-gray-600 dark:text-gray-400">
-                    Total remaining: <Currency value={$calculation.totalRemaining} />
+                    Total remaining: <Currency value={adjustedTotalRemaining} />
                 </div>
             {/if}
         </div>
@@ -223,9 +249,16 @@
                                     {/if}
                                 </Button>
                                 </div>
+                            {:else if isFuturePurchase(purchase)}
+                                <div class="text-center">
+                                    <Alert color="yellow" class="p-2 text-xs bg-[#2557D6]">
+                                        <ExclamationCircleOutline slot="icon" class="w-3 h-3" />
+                                        <span class="font-medium">Payment in the future</span>
+                                    </Alert>
+                                </div>
                             {:else}
                                 Payments: {purchase.paymentsDone} out of {purchase.paymentsTotal}
-                                <Progressbar progress={Math.floor(purchase.paymentsDone/purchase.paymentsTotal*100)} class="w-32 mt-2" />
+                                <Progressbar progress={Math.floor(purchase.paymentsDone/purchase.paymentsTotal*100)} class="w-[90%] mt-2" />
                             {/if}
                         </div>
                 </li>
@@ -234,7 +267,7 @@
         {/if}
         
         <!-- Payment Breakdown Table -->
-        {#if sortedPurchases.length > 0}
+        {#if currentPurchases.length > 0}
             <Heading tag="h5" class="font-normal mb-5 mt-10">Payment Breakdown</Heading>
             <p class="mb-5">Calculation breaks down each purchase into equal parts. </p>
             <div class="w-full overflow-x-auto">
@@ -245,7 +278,7 @@
                         <TableHeadCell>Payments Left</TableHeadCell>
                     </TableHead>
                     <TableBody tableBodyClass="divide-y">
-                        {#each sortedPurchases as purchase}
+                        {#each currentPurchases as purchase}
                         <TableBodyRow class="{isPaidOff(purchase) ? 'bg-green-50 dark:bg-green-900/20' : ''}">
                             <TableBodyCell class="{isPaidOff(purchase) ? 'bg-green-200 dark:bg-green-800 flex items-center gap-2' : 'flex items-center gap-2'}">
                                 {purchase.name}
@@ -268,6 +301,13 @@
                     </TableBody>
                 </Table>
             </div>
+            
+            {#if futurePurchases.length > 0}
+                <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                    <strong>Note:</strong> {futurePurchases.length} purchase{futurePurchases.length > 1 ? 's are' : ' is'} excluded from this breakdown because 
+                    {futurePurchases.length > 1 ? 'they started' : 'it started'} after your payment due date.
+                </p>
+            {/if}
         {/if}
     </div>
 {:else}

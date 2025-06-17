@@ -146,6 +146,15 @@ export const calculateProjection = async(userId: string, loadedPurchases?: Purch
         const nextPaymentDate = firstPaymentDate.plus({ month: i });
         let totalAmountToPay = 0;
         for (const purchase of purchases) {
+            // For future purchases (started after due date), only include them starting from their actual start month
+            const purchaseStartDate = DateTime.fromISO(purchase.startDate).set({ hour: 0, minute: 0, second: 0 });
+            const paymentDueDate = DateTime.fromISO(profileSettings.paymentDueDate).set({ hour: 0, minute: 0, second: 0 });
+            
+            // If this is a future purchase, only include it if the projection month is >= its start date
+            if (purchaseStartDate > paymentDueDate && purchaseStartDate > nextPaymentDate) {
+                continue;
+            }
+            
             if (paidOffMap[purchase.id!] === undefined) {
                 paidOffMap[purchase.id!] = 0;
             }

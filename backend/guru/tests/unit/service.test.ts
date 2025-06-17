@@ -165,18 +165,62 @@ describe('Service', () => {
 
             expect(projection).toEqual({
                 months: [
-                    { date: 'June 2024', amountToPay: 3000 },
-                    { date: 'July 2024', amountToPay: 3000 },
-                    { date: 'August 2024', amountToPay: 3000 },
-                    { date: 'September 2024', amountToPay: 3000 },
-                    { date: 'October 2024', amountToPay: 3000 },
+                    { date: 'May 2024', amountToPay: 2500 },
+                    { date: 'June 2024', amountToPay: 2500 },
+                    { date: 'July 2024', amountToPay: 2500 },
+                    { date: 'August 2024', amountToPay: 2500 },
+                    { date: 'September 2024', amountToPay: 2500 },
+                    { date: 'October 2024', amountToPay: 2500 },
                     { date: 'November 2024', amountToPay: 0 },
                     { date: 'December 2024', amountToPay: 0 },
                     { date: 'January 2025', amountToPay: 0 },
                     { date: 'February 2025', amountToPay: 0 },
                     { date: 'March 2025', amountToPay: 0 },
-                    { date: 'April 2025', amountToPay: 0 },
-                    { date: 'May 2025', amountToPay: 0 }
+                    { date: 'April 2025', amountToPay: 0 }
+                ]
+            });
+        });
+
+        it('should handle future purchases correctly in projection', async () => {
+            jest.spyOn(repository, 'getProfileSettings').mockResolvedValue({
+                paymentDueDate: '2024-01-15T00:00:00.000Z'
+            });
+
+            jest.useFakeTimers().setSystemTime(new Date('2024-01-20'));
+
+            const purchases: Purchase[] = [{
+                total: 6000,
+                remaining: 6000,
+                startDate: '2023-12-01', // Before due date - should be included from start
+                expiryDate: '2024-06-01',
+                hasMinimumPayment: false,
+                name: 'existing',
+                id: '1'
+            }, {
+                total: 3000,
+                remaining: 3000,
+                startDate: '2024-03-01', // After due date - should start from March
+                expiryDate: '2024-06-01',
+                hasMinimumPayment: false,
+                name: 'future',
+                id: '2'
+            }];
+            const projection = await calculateProjection('any', purchases);
+
+            expect(projection).toEqual({
+                months: [
+                    { date: 'January 2024', amountToPay: 1200 }, // Only existing purchase (6000/5)
+                    { date: 'February 2024', amountToPay: 1200 }, // Only existing purchase
+                    { date: 'March 2024', amountToPay: 2200 }, // Both purchases (1200 + 1000)
+                    { date: 'April 2024', amountToPay: 2200 }, // Both purchases
+                    { date: 'May 2024', amountToPay: 2200 }, // Both purchases
+                    { date: 'June 2024', amountToPay: 0 }, // Both expired
+                    { date: 'July 2024', amountToPay: 0 },
+                    { date: 'August 2024', amountToPay: 0 },
+                    { date: 'September 2024', amountToPay: 0 },
+                    { date: 'October 2024', amountToPay: 0 },
+                    { date: 'November 2024', amountToPay: 0 },
+                    { date: 'December 2024', amountToPay: 0 }
                 ]
             });
         });
