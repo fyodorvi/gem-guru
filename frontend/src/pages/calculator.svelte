@@ -288,17 +288,21 @@
 
                 <!-- Payment Amount with Clickable Date -->
                 <div class="text-xl dark:text-white">
-                    Amount to pay by
-                    <button 
-                        type="button"
-                        on:click={showDueDateSelector}
-                        class="inline-flex items-center gap-1 text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 underline decoration-dotted transition-colors"
-                    >
-                        <FormattedDate value={$calculation.nextPaymentDate}/>
-                    </button>: 
-                    <span class="bg-primary-100 dark:bg-primary-900 px-3 py-1 rounded-lg text-white">
-                        <Currency value={adjustedTotalNextPayment} />
-                    </span>
+                    <div class="sm:inline">
+                        Amount to pay by
+                        <button 
+                            type="button"
+                            on:click={showDueDateSelector}
+                            class="inline-flex items-center gap-1 text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 underline decoration-dotted transition-colors"
+                        >
+                            <FormattedDate value={$calculation.nextPaymentDate}/>
+                        </button><span class="hidden sm:inline">:</span>
+                    </div>
+                    <div class="block sm:inline text-center sm:text-left mt-3 sm:mt-0 sm:ml-2">
+                        <span class="bg-primary-100 dark:bg-primary-900 px-3 py-1 rounded-lg text-white">
+                            <Currency value={adjustedTotalNextPayment} />
+                        </span>
+                    </div>
                 </div>
 
                 <!-- Due Date Editor (Hidden by default) -->
@@ -524,7 +528,7 @@
             {#if futurePurchases.length > 0}
                 <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
                     <strong>Note:</strong> {futurePurchases.length} purchase{futurePurchases.length > 1 ? 's are' : ' is'} excluded from this breakdown because 
-                    {futurePurchases.length > 1 ? 'they started' : 'it started'} after your payment due date.
+                    {futurePurchases.length > 1 ? 'they started' : 'it started'} after your last statement date.
                 </p>
             {/if}
         {/if}

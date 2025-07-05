@@ -19,7 +19,8 @@
     "test": "npm run compile && npm run unit",
     "clean": "rm -rf dist",
     "prebuild": "npm run clean",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "test-pdf": "ts-node tests/pdf/test-pdf-parser.ts"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.556.0",

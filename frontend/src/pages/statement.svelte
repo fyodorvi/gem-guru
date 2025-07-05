@@ -5,7 +5,6 @@
         Button,
         Spinner,
         Alert,
-        Fileupload,
         Card,
         Table,
         TableHead,
@@ -87,7 +86,7 @@
         parseResult = null;
         error = null;
         // Reset file input
-        const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+        const fileInput = document.getElementById('dropzone-file') as HTMLInputElement;
         if (fileInput) {
             fileInput.value = '';
         }
@@ -134,17 +133,33 @@
 
         <Card class="mb-6 w-full" style="max-width: none;">
             <div class="space-y-4">
-                <Fileupload 
-                    on:change={handleFileSelect}
-                    accept=".pdf"
-                    class="mb-4"
-                >
-                    <UploadOutline class="mb-2 w-10 h-10 text-gray-400" />
-                    <p class="mb-2 text-sm text-gray-500 dark:text-gray-400">
-                        <span class="font-semibold">Click to upload</span> or drag and drop
-                    </p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">PDF files only (MAX. 10MB)</p>
-                </Fileupload>
+                <!-- Custom Safari-compatible file upload -->
+                <div class="flex items-center justify-center w-full">
+                    <label 
+                        for="dropzone-file" 
+                        class="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-bray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600 transition-colors"
+                    >
+                        <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                            <UploadOutline class="mb-2 w-10 h-10 text-gray-400" />
+                            <p class="mb-2 text-sm text-gray-500 dark:text-gray-400">
+                                <span class="font-semibold">Click to upload</span> or drag and drop
+                            </p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">PDF files only (MAX. 10MB)</p>
+                            {#if selectedFile}
+                                <p class="mt-2 text-sm text-green-600 dark:text-green-400 font-medium">
+                                    Selected: {selectedFile.name}
+                                </p>
+                            {/if}
+                        </div>
+                        <input 
+                            id="dropzone-file" 
+                            type="file" 
+                            class="hidden" 
+                            accept=".pdf"
+                            on:change={handleFileSelect}
+                        />
+                    </label>
+                </div>
 
                 <Button 
                     on:click={handleUpload} 
@@ -283,7 +298,7 @@
                         <Badge color="red">{parseResult.interimResult.paidOffPurchases.length}</Badge>
                     </div>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                        These purchases were not found in the new statement and appear to be paid off.
+                        These purchases appear to be paid off (either not found in the statement or have zero remaining balance).
                     </p>
                     <div class="w-full overflow-x-auto" style="max-width: none;">
                         <Table striped={true} class="border w-full" style="max-width: none;">
@@ -362,5 +377,19 @@
 <style>
     :global(.file-upload-label) {
         cursor: pointer;
+    }
+    
+    /* Safari-specific fixes */
+    label[for="dropzone-file"] {
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+    
+    /* Ensure proper file input styling in Safari */
+    input[type="file"] {
+        -webkit-appearance: none;
+        appearance: none;
     }
 </style> 

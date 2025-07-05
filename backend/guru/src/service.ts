@@ -358,12 +358,23 @@ function generateInterimResult(
         if (existingMatch && existingMatch.id) {
             // This is an update
             matchedExistingIds.add(existingMatch.id);
-            updatedPurchases.push({
-                id: existingMatch.id,
-                name: existingMatch.name,
-                oldRemaining: existingMatch.remaining,
-                newRemaining: newPurchase.remaining,
-            });
+            
+            // Check if this is a paid off purchase (remaining balance is now 0)
+            if (newPurchase.remaining === 0) {
+                paidOffPurchases.push({
+                    id: existingMatch.id,
+                    name: existingMatch.name,
+                    total: existingMatch.total,
+                    remaining: existingMatch.remaining, // Use the old remaining amount
+                });
+            } else {
+                updatedPurchases.push({
+                    id: existingMatch.id,
+                    name: existingMatch.name,
+                    oldRemaining: existingMatch.remaining,
+                    newRemaining: newPurchase.remaining,
+                });
+            }
         } else {
             // This is a new purchase
             // Calculate payment type for display
@@ -569,9 +580,21 @@ function performUpsert(
             if (match.id) {
                 matchedExistingIds.add(match.id);
             }
-            summary.updated++;
-            summary.updatedPurchases.push(match.name);
-            console.log(`📝 Updated: ${match.name} - remaining: $${(newPurchase.remaining / 100).toFixed(2)}`);
+            
+            // Check if this purchase is now paid off (remaining = 0)
+            if (newPurchase.remaining === 0) {
+                summary.potentiallyPaidOff++;
+                summary.potentiallyPaidOffPurchases.push({
+                    id: match.id!,
+                    name: match.name,
+                    total: match.total,
+                });
+                console.log(`💰 Paid off: ${match.name} - was $${(match.remaining / 100).toFixed(2)}, now $0.00`);
+            } else {
+                summary.updated++;
+                summary.updatedPurchases.push(match.name);
+                console.log(`📝 Updated: ${match.name} - remaining: $${(newPurchase.remaining / 100).toFixed(2)}`);
+            }
         } else {
             // Add new purchase
             finalPurchases.push(newPurchase);
