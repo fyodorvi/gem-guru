@@ -1,4 +1,4 @@
-import { IsDefined, IsString, IsNumber, IsOptional } from 'class-validator';
+import { IsDefined, IsString, IsNumber } from 'class-validator';
 
 export class StatementRequest {
     @IsDefined()

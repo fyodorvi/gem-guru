@@ -1,4 +1,5 @@
 export interface CalculatedPurchase {
+    id?: string;
     name: string;
     total: number;
     remaining: number;

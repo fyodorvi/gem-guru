@@ -6,7 +6,7 @@ import * as _ from 'lodash';
 import { DateTime } from 'luxon';
 import { ProfileSettings } from './models/profileSettings';
 import { Projection } from './models/projection';
-import { UserData } from './models/userData';
+
 import { parseStatement } from './statementParser';
 import {
     StatementParseResult,
@@ -70,12 +70,80 @@ const _calculateItemRepayment = (item: Purchase, nextPaymentDate: DateTime): num
         // Compare minimum payment with equal payment and use the higher amount
         // This ensures minimum payment purchases are paid off within the interest-free period
         const requiredPayment = Math.max(minPayment, equalPayment);
-        
+
         // Cap the payment at the remaining balance to prevent negative balances
         return Math.min(requiredPayment, remaining);
     } else {
         return equalPayment;
     }
+};
+
+const _calculateEqualSplitPayment = (purchases: Purchase[], nextPaymentDate: DateTime): number => {
+    // Calculate total payment needed to split repayments equally across all purchases
+    let totalPayment = 0;
+    for (const purchase of purchases) {
+        if (purchase.remaining <= 0) continue;
+        totalPayment += _calculateItemRepayment(purchase, nextPaymentDate);
+    }
+    return totalPayment;
+};
+
+const _distributeBankPayment = (
+    purchases: Purchase[],
+    totalPayment: number,
+    _nextPaymentDate: DateTime, // Unused but kept for consistency
+): { [purchaseId: string]: number } => {
+    const distribution: { [purchaseId: string]: number } = {};
+    let remainingPayment = totalPayment;
+
+    // Clone purchases to avoid modifying original
+    const workingPurchases = purchases.map((p) => _.clone(p)).filter((p) => p.remaining > 0);
+
+    // Step 1: Apply minimum payments to purchases that have minimum payments
+    for (const purchase of workingPurchases) {
+        if (purchase.hasMinimumPayment && purchase.minimumPayment !== undefined) {
+            const minPayment = Math.min(purchase.minimumPayment, purchase.remaining);
+            distribution[purchase.id!] = minPayment;
+            purchase.remaining -= minPayment;
+            remainingPayment -= minPayment;
+        } else {
+            distribution[purchase.id!] = 0;
+        }
+    }
+
+    // Step 2: Apply minimum of $20 or 3% to purchases without minimum payments
+    for (const purchase of workingPurchases) {
+        if (!purchase.hasMinimumPayment && purchase.remaining > 0) {
+            const threePercentPayment = Math.ceil(purchase.remaining * 0.03);
+            const requiredPayment = Math.max(2000, threePercentPayment); // $20 = 2000 cents
+            const actualPayment = Math.min(requiredPayment, purchase.remaining, remainingPayment);
+
+            distribution[purchase.id!] += actualPayment;
+            purchase.remaining -= actualPayment;
+            remainingPayment -= actualPayment;
+
+            if (remainingPayment <= 0) break;
+        }
+    }
+
+    // Step 3: Apply remaining payment to purchases sorted by expiry date (earliest first)
+    if (remainingPayment > 0) {
+        // Sort by expiry date (earliest first)
+        const sortedPurchases = workingPurchases
+            .filter((p) => p.remaining > 0)
+            .sort((a, b) => new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime());
+
+        for (const purchase of sortedPurchases) {
+            if (remainingPayment <= 0) break;
+
+            const paymentToPurchase = Math.min(purchase.remaining, remainingPayment);
+            distribution[purchase.id!] += paymentToPurchase;
+            purchase.remaining -= paymentToPurchase;
+            remainingPayment -= paymentToPurchase;
+        }
+    }
+
+    return distribution;
 };
 
 const _calculateItemPayments = (
@@ -154,32 +222,36 @@ export const calculate = async (userId: string, loadedPurchases?: Purchase[]): P
         statementDate: profileSettings.statementDate!,
     };
 
-        for (const purchase of purchases) {
-        const firstPayment = _getFirstPaymentDate(purchase, profileSettings.paymentDueDate);
-        let nextPayment = _calculateItemRepayment(purchase, nextPaymentDate);
-        const { paymentsTotal, paymentsDone } = _calculateItemPayments(purchase, firstPayment, nextPaymentDate);
-        
-        // Check if purchase started after statement date - if so, exclude from current payment
-        let isAfterStatementDate = false;
+    // Filter out purchases that started after statement date
+    const includedPurchases = purchases.filter((purchase) => {
         const statementDate = DateTime.fromISO(profileSettings.statementDate).set({ hour: 23, minute: 59, second: 59 });
         const purchaseStartDate = DateTime.fromISO(purchase.startDate);
-        if (purchaseStartDate > statementDate) {
-            nextPayment = 0; // Don't include in current payment
-            isAfterStatementDate = true;
-            console.log(`🗓️ Purchase ${purchase.name} started after statement date - excluding from current payment`);
-        }
-        
+        return purchaseStartDate <= statementDate;
+    });
+
+    // Calculate total payment needed to split repayments equally
+    const totalPayment = _calculateEqualSplitPayment(includedPurchases, nextPaymentDate);
+
+    // Distribute that payment using bank logic
+    const paymentDistribution = _distributeBankPayment(includedPurchases, totalPayment, nextPaymentDate);
+
+    // Build calculation results
+    for (const purchase of purchases) {
+        const firstPayment = _getFirstPaymentDate(purchase, profileSettings.paymentDueDate);
+        const { paymentsTotal, paymentsDone } = _calculateItemPayments(purchase, firstPayment, nextPaymentDate);
+
+        // Get the payment for this purchase from the distribution
+        const nextPayment = paymentDistribution[purchase.id!] || 0;
+
         calculation.purchases.push({
             ...purchase,
             nextPayment,
             paymentsTotal,
             paymentsDone,
         });
-        
+
         calculation.totalRemaining += purchase.remaining;
-        if (!isAfterStatementDate) {
-            calculation.totalNextPayment += nextPayment;
-        }
+        calculation.totalNextPayment += nextPayment;
     }
 
     return calculation;
@@ -195,12 +267,19 @@ export const calculateProjection = async (userId: string, loadedPurchases?: Purc
         months: [],
     };
 
-    const paidOffMap: { [index: string]: number } = {};
+    // Clone purchases to simulate payment application
+    const simulatedPurchases = purchases.map((p) => _.clone(p));
 
     for (let i = 0; i < 12; i++) {
         const nextPaymentDate = firstPaymentDate.plus({ month: i });
-        let totalAmountToPay = 0;
-        for (const purchase of purchases) {
+
+        // Filter purchases that should be included in this month's payment
+        const activePurchases = simulatedPurchases.filter((purchase) => {
+            // Skip purchases that are already paid off
+            if (purchase.remaining <= 0) {
+                return false;
+            }
+
             // Filter by statement date - exclude from first month if started after statement date
             if (i === 0) {
                 const statementDate = DateTime.fromISO(profileSettings.statementDate).set({
@@ -209,10 +288,10 @@ export const calculateProjection = async (userId: string, loadedPurchases?: Purc
                     second: 59,
                 });
                 const purchaseStartDate = DateTime.fromISO(purchase.startDate);
-                
+
                 // Only include purchases made before or on the statement date in current cycle
                 if (purchaseStartDate > statementDate) {
-                    continue;
+                    return false;
                 }
             }
 
@@ -226,18 +305,35 @@ export const calculateProjection = async (userId: string, loadedPurchases?: Purc
 
             // If this is a future purchase, only include it if the projection month is >= its start date
             if (purchaseStartDate > paymentDueDate && purchaseStartDate > nextPaymentDate) {
-                continue;
+                return false;
             }
 
-            if (paidOffMap[purchase.id!] === undefined) {
-                paidOffMap[purchase.id!] = 0;
+            return true;
+        });
+
+        let totalAmountToPay = 0;
+
+        if (activePurchases.length > 0) {
+            if (i === 0) {
+                // For the first month, calculate payment needed to split repayments equally
+                totalAmountToPay = _calculateEqualSplitPayment(activePurchases, nextPaymentDate);
+            } else {
+                // For subsequent months, use bank distribution logic
+                // Calculate total payment needed to split repayments equally
+                totalAmountToPay = _calculateEqualSplitPayment(activePurchases, nextPaymentDate);
             }
-            const clonedPurchase = _.clone(purchase);
-            clonedPurchase.remaining -= paidOffMap[purchase.id!];
-            const nextPayment = _calculateItemRepayment(clonedPurchase, nextPaymentDate);
-            totalAmountToPay += nextPayment;
-            paidOffMap[purchase.id!] += nextPayment;
+
+            // Distribute the payment using bank logic
+            const paymentDistribution = _distributeBankPayment(activePurchases, totalAmountToPay, nextPaymentDate);
+
+            // Apply the distributed payments to the purchases
+            for (const purchase of simulatedPurchases) {
+                if (paymentDistribution[purchase.id!]) {
+                    purchase.remaining = Math.max(0, purchase.remaining - paymentDistribution[purchase.id!]);
+                }
+            }
         }
+
         resultProjection.months.push({
             date: nextPaymentDate.toFormat('LLLL yyyy'),
             amountToPay: Math.max(totalAmountToPay, 0),
@@ -358,7 +454,7 @@ function generateInterimResult(
         if (existingMatch && existingMatch.id) {
             // This is an update
             matchedExistingIds.add(existingMatch.id);
-            
+
             // Check if this is a paid off purchase (remaining balance is now 0)
             if (newPurchase.remaining === 0) {
                 paidOffPurchases.push({
@@ -460,7 +556,7 @@ export const parseAndUpsertStatementPurchases = async (
 
         // Convert parsed purchases to Purchase objects
         const newParsedPurchases: Purchase[] = parseResult.parsedPurchases.map(
-            (parsed: ParsedPurchase, index: number) => {
+            (parsed: ParsedPurchase, _index: number) => {
                 let minimumPayment: number | undefined = parsed.minimumPayment;
                 let hasMinimumPayment = false;
 
@@ -580,7 +676,7 @@ function performUpsert(
             if (match.id) {
                 matchedExistingIds.add(match.id);
             }
-            
+
             // Check if this purchase is now paid off (remaining = 0)
             if (newPurchase.remaining === 0) {
                 summary.potentiallyPaidOff++;

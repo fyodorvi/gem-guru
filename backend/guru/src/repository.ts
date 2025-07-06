@@ -50,11 +50,11 @@ const _loadUserData = async (userId: string): Promise<UserData> => {
             const nextMonth = new Date();
             nextMonth.setMonth(nextMonth.getMonth() + 1);
             nextMonth.setDate(1);
-            
+
             // Set default statement date to 3 weeks before the first of next month
             const statementDate = new Date(nextMonth);
             statementDate.setDate(statementDate.getDate() - 21); // 3 weeks back
-            
+
             result.Items[0].profileSettings = {
                 paymentDueDate: nextMonth.toISOString().split('T')[0] + 'T00:00:00.000Z',
                 statementDate: statementDate.toISOString().split('T')[0] + 'T00:00:00.000Z',
@@ -66,11 +66,11 @@ const _loadUserData = async (userId: string): Promise<UserData> => {
         const nextMonth = new Date();
         nextMonth.setMonth(nextMonth.getMonth() + 1);
         nextMonth.setDate(1);
-        
+
         // Set default statement date to 3 weeks before the first of next month
         const statementDate = new Date(nextMonth);
         statementDate.setDate(statementDate.getDate() - 21); // 3 weeks back
-        
+
         return {
             purchases: [],
             profileSettings: {

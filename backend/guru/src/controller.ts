@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/triple-slash-reference
 /// <reference path="./types/express.d.ts" />
 import { Request, Response, Router } from 'express';
 import {
@@ -79,7 +80,6 @@ router.post('/purchase/:id/delete', async (req: Request, res: Response) => {
     if (!purchaseId) {
         throw new Error('No purchase id provided');
     }
-    const purchase: Purchase = req.body;
 
     const calculation = await removePurchase(userId, req.params.id);
 

@@ -27,6 +27,9 @@
                 },
                 toolbar: {
                     show: false
+                },
+                animations: {
+                    enabled: false
                 }
             },
             tooltip: {
@@ -41,7 +44,17 @@
                     const roundedValue = Math.round(value / 100) * 100;
                     return '$' + Math.round(roundedValue / 100);
                 },
-                enabled: true
+                enabled: true,
+                background: {
+                    enabled: true,
+                    foreColor: '#fff',
+                    backgroundColor: '#7c3aed',
+                    padding: 4,
+                    borderRadius: 2,
+                    borderWidth: 1,
+                    borderColor: '#7c3aed',
+                    opacity: 1
+                }
             },
             stroke: {
                 width: 6,
@@ -61,7 +74,7 @@
                 {
                     name: 'Payment',
                     data: projection.months.map((month) => Math.round(month.amountToPay / 100) * 100),
-                    color: '#1A56DB'
+                    color: '#7c3aed'
                 },
             ],
             legend: {

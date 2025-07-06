@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import path from 'path';
+import * as path from 'path';
 import { parseStatement } from '../../src/statementParser';
 import { StatementParseResult } from '../../src/models/statementParseResult';
 import * as fs from 'fs';
@@ -51,13 +51,13 @@ function formatSection(title: string, content: string): string {
 
 function formatResult(result: StatementParseResult): string {
     const output: string[] = [];
-    
+
     output.push(formatSection('📊 PARSING RESULTS', ''));
     output.push(colorize(`• Total Purchases: ${result.parsedPurchases.length}`, COLORS.green));
     output.push(colorize(`• Statement Date: ${result.statementDate || 'N/A'}`, COLORS.blue));
     output.push(colorize(`• Due Date: ${result.dueDate || 'N/A'}`, COLORS.blue));
     output.push('');
-    
+
     if (result.parsedPurchases.length > 0) {
         output.push(formatSection('💳 PURCHASES', ''));
         result.parsedPurchases.forEach((purchase, index) => {
@@ -71,25 +71,27 @@ function formatResult(result: StatementParseResult): string {
             output.push('');
         });
     }
-    
+
     return output.join('\n');
 }
 
 async function testWithPoppler(filePath: string, options: TestOptions): Promise<void> {
     // eslint-disable-next-line no-console
     console.log(colorize('\n🔧 Testing with node-poppler (Poppler library)', COLORS.bold + COLORS.cyan));
-    
+
     try {
         const poppler = new Poppler();
         const text = await poppler.pdfToText(filePath);
-        
+
         if (options.showText) {
             // eslint-disable-next-line no-console
             console.log(formatSection('📄 EXTRACTED TEXT (Poppler)', text.substring(0, TEXT_PREVIEW_LENGTH) + '...'));
         }
-        
+
         // Look for the promotional section
-        const sectionMatch = text.match(/Unexpired Gem Visa promotional transactions[\s\S]*?(?=\n\n|\nStatement|\nPlease|$)/);
+        const sectionMatch = text.match(
+            /Unexpired Gem Visa promotional transactions[\s\S]*?(?=\n\n|\nStatement|\nPlease|$)/,
+        );
         if (sectionMatch) {
             // eslint-disable-next-line no-console
             console.log(colorize('✅ Found promotional section with Poppler', COLORS.green));
@@ -101,7 +103,6 @@ async function testWithPoppler(filePath: string, options: TestOptions): Promise<
             // eslint-disable-next-line no-console
             console.log(colorize('❌ Could not find promotional section', COLORS.red));
         }
-        
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         // eslint-disable-next-line no-console
@@ -117,17 +118,16 @@ async function testWithPoppler(filePath: string, options: TestOptions): Promise<
     }
 }
 
-async function testWithPdfParse(filePath: string, options: TestOptions): Promise<void> {
+async function testWithPdfParse(filePath: string, _options: TestOptions): Promise<void> {
     // eslint-disable-next-line no-console
     console.log(colorize('\n🔧 Testing with pdf-parse (current approach)', COLORS.bold + COLORS.cyan));
-    
+
     try {
         const fileBuffer = fs.readFileSync(filePath);
         const result = await parseStatement(fileBuffer);
-        
+
         // eslint-disable-next-line no-console
         console.log(formatResult(result));
-        
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         // eslint-disable-next-line no-console
@@ -179,8 +179,8 @@ Examples:
         console.error(colorize(`❌ File not found: ${filePath}`, COLORS.red));
         // eslint-disable-next-line no-console
         console.log(colorize('Available files in samples/:', COLORS.yellow));
-        const files = fs.readdirSync(samplesDir).filter(f => f.endsWith('.pdf'));
-        files.forEach(file => {
+        const files = fs.readdirSync(samplesDir).filter((f) => f.endsWith('.pdf'));
+        files.forEach((file) => {
             // eslint-disable-next-line no-console
             console.log(colorize(`  - ${file}`, COLORS.gray));
         });
@@ -199,4 +199,4 @@ Examples:
 }
 
 // eslint-disable-next-line no-console
-main().catch(console.error); 
+main().catch(console.error);

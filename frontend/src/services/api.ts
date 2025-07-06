@@ -11,7 +11,7 @@ export interface CalculatedProjection {
 }
 
 export interface CalculatedPurchase {
-    id: string;
+    id?: string;
     name: string;
     total: number;
     remaining: number;
@@ -56,7 +56,7 @@ export interface ParsedPurchase {
     expiryDate: string;
     minimumPayment?: number;
     interestFreeMonths?: number;
-    paymentType?: 'fixed' | 'monthly' | 'none';
+    paymentType?: 'fixed' | 'monthly' | 'none' | 'deferred';
 }
 
 export interface NewPurchase extends ParsedPurchase {
